@@ -1,6 +1,7 @@
 theme_classical <- function(base_family = "", base_size = 12,
                             borders_gray = FALSE, bg_color = "white",
-                            arrows = TRUE, plot_margin = NULL) {
+                            arrows = TRUE, plot_margin = NULL,
+                            aspect_ratio = NULL) {
   # default plot margin ggplot2::theme_classic()$plot.margin
   axis_col <- if (borders_gray) "gray70" else "black" # axis line and tick mark color
   axis_text_col <- if (borders_gray) "gray40" else "black" # tick mark labels and labels for axes
@@ -67,6 +68,10 @@ theme_classical <- function(base_family = "", base_size = 12,
   
   if (!is.null(plot_margin)) 
     ret <- ret + theme(plot.margin = plot_margin)
+
+  if (!is.null(aspect_ratio))
+    ret <- ret + coord_fixed(ratio = aspect_ratio)
+                                     
   ret
 }
 
