@@ -35,13 +35,14 @@ rm(new_env)
 #' @param Knn Same as Knn in KPC::KFOCI (after excluding NAs). If NULL, the default from KPC::KFOCI will be used.
 #' @param numCores Same as numCores from KPC::KFOCI.
 #' @param R Positive integer. Number of times KFOCI is called repeatedly, see details.
+#' @param subsampling Logical. If TRUE perform random subsampling to assess stability of the selection. If FALSE (default) random subsampling is not done.
 #'
-#' @details If binary data (predictor or response) is included in d, then there may be randomness due to breaking the ties for the kNN graphs. 
-#'    One may call KFOCI multiple times to investigate the selected variables across 'R' calls.
+#' @details If R > 1 and subsampling = FALSE, KFOCI is called R times to investigate the effect of random breaking of ties for the kNN graphs. 
+#'    If R > 1 and subsampling = TRUE, KFOCI is called R times to investigate the stability of the selection via random subsampling of size 0.632*n.
 #'    
 #' @return A list. If R = 1, then selected_indices is the return value from KFOCI and selected_names are the corresponding variable names in d.
-#'    If R > 1, selected_indices is the stable selection of variables according to the algorithm in Section 2.3 in Kormaksson et al. (https://doi.org/10.1002/sim.8955) and selected_names are the corresponding variable names in d.
-#'    Element selections contains a matrix indicating whether each of the variables was selected (1) or not (0) in each of the R repetitions, and ranks contains the rank of each variable as obtained by KFOCI for each of the R runs.
+#'    If R > 1, 'selected_indices' is the stable selection of variables according to the algorithm in Section 2.3 in Kormaksson et al. (https://doi.org/10.1002/sim.8955) and 'selected_names' are the corresponding variable names in d.
+#'    The list element 'selections' contains a matrix indicating whether each of the variables was selected (1) or not (0) in each of the R repetitions, and 'ranks' contains the rank of each variable as obtained by KFOCI for each of the R runs.
 apply_KFOCI <- function(d, y_name, y_yes_level = NULL, prep_data = TRUE,
                         scale = c("mean_2sd", "mean_sd_all", "median_2GMD", "median_GMD_all", "none"),
                         ordered_coding = c("integer", "dummy", "stairstep", "none"),
@@ -253,6 +254,7 @@ plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
 
 # Filter function for use in MachineShop::step_sbf
 # (Use step_sbf with multivariate = TRUE)
+# TODO: extend arguments to allow for more control
 kfoci_filter <- function(x, y, step) {
   selected <- vector("logical", ncol(x))
   d <- cbind(x, y)
