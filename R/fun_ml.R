@@ -32,4 +32,3 @@ pval_perm <- function(x) {
 
 # TODO
 # - function that creates variable importance via effects style plot (effect of moving from Q1 to Q3)
-# - create filter function for MachineShop::step_sbf that is based on KPC::KFOCI

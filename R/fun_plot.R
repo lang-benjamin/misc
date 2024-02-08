@@ -77,7 +77,7 @@ theme_classical <- function(base_family = "", base_size = 12,
 
 # For generating figures (taken from Frank Harrell)
 # - Quarto setup: knitr::opts_chunk$set(dev = 'raggpng', fig.ext = 'png')
-# - Use ggsave with ggsave(filename, plot, device = raggpng, dpi = 600, units = "in")
+# - Use ggsave with ggsave(filename, plot, device = raggpng, res = 600) # need limitsize = FALSE? 
 raggpng <- function(..., res = 192) ragg::agg_png(..., res = res, units = 'in')
 
 # Mixture of Hmisc::ggfreqScatter, Hmisc::movStats and https://thestatsgeek.com/2014/09/13/checking-functional-form-in-logistic-regression-using-loess/
