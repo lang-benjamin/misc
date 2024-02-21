@@ -87,7 +87,7 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
   d[] <- lapply(d, function(x) if (is.logical(x)) as.integer(x) else x)
   
   # Define X and y
-  y <- d[, idx_y]
+  y <- d[, idx_y, drop = TRUE]
   X <- d[, -idx_y]
   if (remove_na) {
     ok <- complete.cases(X, y) # remove NAs
