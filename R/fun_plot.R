@@ -85,7 +85,8 @@ plot_scatter <- function(data, x, y, binary_on_logit = FALSE,
                          fcolors = viridis::viridis(10)) {
   if (length(unique(data[[y]])) == 2) { 
     # y is binary
-    data[[y]] <- as.integer(data[[y]]) - 1 # make sure it's integer based
+    if (is.factor(data[[y]]))
+      data[[y]] <- as.integer(data[[y]]) - 1 # make sure it's integer based
     ms <- movStats(reformulate(x, y), melt = TRUE, data = data)
     if (binary_on_logit) {
       ms_logit <- ms
