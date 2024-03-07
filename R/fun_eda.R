@@ -1,6 +1,6 @@
 # Provide summary statistics for cleaning EDA
 # Function is taken from John Curtin: https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R
-skim_some <- skimr::skim_with(numeric = sfl(mean = NULL, sd = NULL, p25 = NULL, p50 = NULL, p75 = NULL, hist = NULL))
+skim_some <- skimr::skim_with(numeric = skimr::sfl(mean = NULL, sd = NULL, p25 = NULL, p50 = NULL, p75 = NULL, hist = NULL))
 
 # Function is taken from John Curtin: https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R
 print_kbl <- function(data, height = "500px", align = "r", digits = 2, caption = NULL) {
