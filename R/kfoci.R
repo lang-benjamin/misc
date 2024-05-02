@@ -88,7 +88,8 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL, prep_data = TRUE,
     return(list(selected_indices = selected, 
                 selected_names = colnames(X)[selected],
                 selections = NA,
-                ranks = NA))
+                ranks = NA,
+                p_actual = ncol(X)))
   }
   # Selection matrix that identifies if a variable was selected or not
   S <- matrix(0L, nrow = ncol(X), ncol = R)
