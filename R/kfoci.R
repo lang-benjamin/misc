@@ -43,6 +43,7 @@ rm(new_env)
 #' @return A list. If R = 1, then selected_indices is the return value from KFOCI and selected_names are the corresponding variable names in d.
 #'    If R > 1, 'selected_indices' is the stable selection of variables according to the algorithm in Section 2.3 in Kormaksson et al. (https://doi.org/10.1002/sim.8955) and 'selected_names' are the corresponding variable names in d.
 #'    The list element 'selections' contains a matrix indicating whether each of the variables was selected (1) or not (0) in each of the R repetitions, and 'ranks' contains the rank of each variable as obtained by KFOCI for each of the R runs.
+#'    The element 'p_actual' contains the number of predictors after data processing (e.g. after converting into dummy variables)
 apply_KFOCI <- function(d, y_name, y_yes_level = NULL, prep_data = TRUE,
                         scale = c("mean_2sd", "mean_sd_all", "median_2GMD", "median_GMD_all", "none"),
                         ordered_coding = c("integer", "dummy", "stairstep", "none"),
@@ -137,7 +138,8 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL, prep_data = TRUE,
   return(list(selected_indices = selected_indices, 
               selected_names = selected_names, 
               selections = t(S), 
-              ranks = t(Rk)))
+              ranks = t(Rk),
+              p_actual = ncol(X)))
 }
 
 #' Plot most frequent tuples of ranks from selected variables
