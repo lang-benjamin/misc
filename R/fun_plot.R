@@ -1,7 +1,6 @@
 theme_classical <- function(base_family = "", base_size = 12,
                             borders_gray = FALSE, bg_color = "white",
-                            arrows = TRUE, plot_margin = NULL,
-                            aspect_ratio = NULL) {
+                            arrows = TRUE, plot_margin = NULL) {
   # default plot margin ggplot2::theme_classic()$plot.margin
   axis_col <- if (borders_gray) "gray70" else "black" # axis line and tick mark color
   axis_text_col <- if (borders_gray) "gray40" else "black" # tick mark labels and labels for axes
@@ -69,16 +68,8 @@ theme_classical <- function(base_family = "", base_size = 12,
   if (!is.null(plot_margin)) 
     ret <- ret + theme(plot.margin = plot_margin)
 
-  if (!is.null(aspect_ratio))
-    ret <- ret + coord_fixed(ratio = aspect_ratio)
-                                     
   ret
 }
-
-# For generating figures (taken from Frank Harrell)
-# - Quarto setup: knitr::opts_chunk$set(dev = 'raggpng', fig.ext = 'png')
-# - Use ggsave with ggsave(filename, plot, device = raggpng, res = 600) # need limitsize = FALSE? 
-raggpng <- function(..., res = 192) ragg::agg_png(..., res = res, units = 'in')
 
 # Mixture of Hmisc::ggfreqScatter, Hmisc::movStats and https://thestatsgeek.com/2014/09/13/checking-functional-form-in-logistic-regression-using-loess/
 plot_scatter <- function(data, x, y, binary_on_logit = FALSE, 
