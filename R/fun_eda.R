@@ -145,7 +145,7 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
   
   # The remaining unordered factors will be converted to dummy variables
   if (any(sapply(X, is.factor)))
-    X <- model.matrix(~ ., X)[, -1] # X is now a matrix
+    X <- model.matrix.lm(~ ., X, na.action = "na.pass")[, -1] # X is now a matrix
   
   # Omit constant columns
   idx_const <- constant_columns(X)
