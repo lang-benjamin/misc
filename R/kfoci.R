@@ -78,7 +78,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   # If, however, Y is 1-dimensional and binary, then the median (of pairwise
   # differences) is not appropriate (because of heavy ties in Y).
   # In this case and in other cases where the median is zero, use mean instead.
-  idx_y <- match(y_name, names(d))
+  idx_y <- if (is.character(y_name)) match(y_name, names(d)) else y_name
   if ((length(idx_y) == 1 && length(unique(Y)) == 2) || bw == 0)
     bw <- base::mean(stats::dist(Y))
   
