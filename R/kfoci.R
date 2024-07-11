@@ -254,17 +254,3 @@ plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
     labs(x = "Frequency", y = "",
          title = plot_title, subtitle = plot_subtitle, caption = plot_caption)
 }
-
-# Filter function for use in MachineShop::step_sbf
-# (Use step_sbf with multivariate = TRUE)
-# TODO: extend arguments to allow for more control
-kfoci_filter <- function(x, y, step) {
-  selected <- vector("logical", ncol(x))
-  d <- cbind(x, y)
-  ncoly <- if (is.null(ncol(y))) 1 else ncol(y)
-  out <- apply_KFOCI(d = d, y_name = seq(from = ncol(x) + 1, 
-                                         to = ncol(x) + ncoly, 
-                                         by = 1))
-  selected[out$selected_indices] <- TRUE
-  selected
-}
