@@ -11,8 +11,8 @@ theme_classical <- function(base_family = "", base_size = 12,
   strip_text_size <- base_size + 1
   strip_text_col <- if (borders_gray) "gray35" else "black" 
   title_col <- "black" # if (borders_gray) "gray30" else "black"
-  title_size <- base_size + 4
-  subtitle_size <- axis_title_size + 2
+  title_size <- base_size + 2
+  subtitle_size <- axis_title_size + 1
   subtitle_col <- "black"
   subtitle_margin <- 20
   caption_size <- max(base_size - 3, 9)
