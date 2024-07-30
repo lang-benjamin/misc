@@ -5,7 +5,7 @@ theme_classical <- function(base_family = "", base_size = 12,
   axis_col <- if (borders_gray) "gray70" else "black" # axis line and tick mark color
   axis_text_col <- if (borders_gray) "gray40" else "black" # tick mark labels and labels for axes
   axis_size <- 0.2
-  axis_text_size <- base_size - 2 # tick mark label
+  axis_text_size <- base_size - 1 # tick mark label
   axis_title_size <- base_size # y or x axis title/label
   axis_title_family <- base_family
   strip_text_size <- base_size + 1
@@ -28,7 +28,7 @@ theme_classical <- function(base_family = "", base_size = 12,
           axis.line.x = element_line(linewidth = axis_size, color = axis_col,
                                      arrow = if (!arrows) NULL else arrow(type = "closed", length = unit(0.06, "inches"))),
           axis.line.y = element_line(linewidth = axis_size, color = axis_col,
-                                     arrow = if (!arrows) NULL else arrow(type = "closed", length = unit(0.06, "inch"))),
+                                     arrow = if (!arrows) NULL else arrow(type = "closed", length = unit(0.06, "inches"))),
           axis.ticks = element_line(linewidth = axis_size, color = axis_col),
           axis.ticks.x = element_line(linewidth = axis_size, color = axis_col),
           axis.ticks.y = element_line(linewidth = axis_size, color = axis_col),
