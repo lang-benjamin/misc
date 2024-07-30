@@ -20,7 +20,7 @@ theme_classical <- function(base_family = "", base_size = 12,
   
   ret <- ggplot2::theme_classic(base_family = base_family, base_size = base_size)
   ret <- ret + 
-    theme(legend.background = element_blank(), 
+    ggplot2::theme(legend.background = element_blank(), 
           legend.key = element_blank(), 
           strip.background = element_blank(),
           panel.grid = element_blank(), 
@@ -66,7 +66,7 @@ theme_classical <- function(base_family = "", base_size = 12,
           )
   
   if (!is.null(plot_margin)) 
-    ret <- ret + theme(plot.margin = plot_margin)
+    ret <- ret + ggplot2::theme(plot.margin = plot_margin)
 
   ret
 }
