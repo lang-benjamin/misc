@@ -147,7 +147,7 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
     if (unordered_coding == "dummy") {
       X <- model.matrix.lm(~ ., X, na.action = "na.pass")[, -1] 
     } else {
-      X <- model.matrix.lm(~ 0 + ., X, na.action = "na.pass")[, -1] 
+      X <- model.matrix.lm(~ 0 + ., X, na.action = "na.pass")
     }
   } # X is now a matrix
   
