@@ -238,7 +238,7 @@ plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
   plot_caption <- if (is.null(caption)) "Frequencies of variables highlighted in orange are selected according to the algorithm from Sec. 2.3 in Kormarksson et al." else caption
   
   ggplot(data = d, 
-         mapping = aes(x = selection_freq, y = variable_label, col = selected)) +
+         mapping = aes(x = selection_freq, y = reorder(variable_label, selection_freq), col = selected)) +
     geom_point() +
     theme_classic() +
     scale_x_continuous(limits = c(0, 1.005)) +
