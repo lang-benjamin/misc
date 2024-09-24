@@ -61,12 +61,14 @@ stairstep_coding <- function(fct) {
 #' @param y_yes_level If y is a factor with two levels, y_yes_level is the y value that represents 'Yes', to be coded 1 rather than 0
 #' @param remove_na Logical. Remove NAs or keep them?
 #' @param ordered_coding How should ordinal factor variables be coded? "dummy" does dummy coding, "stairstep" introduces stairstep contrasts (essentially backward difference coding), "dummy" does dummy coding, "integer" converts the ordinal variable into an integer-valued variable, "none" does not do anything and keeps the variable as is.
+#' @param unordered_coding How should unordered factor variables be coded? "dummy" or "one-hot" 
 #' @param scale Scaling option for variables in X. 
 #'    "mean_2sd" scales all continuous and integer-valued variables that are not binary by subtracting the mean and dividing by 2 times the standard deviation. Option "median_2GMD" is a robust alternative subtracting the median and dividing by 2 times the Gini Mean Difference.
 #'    "mean_sd_all" and "median_GMD_all" are the counterparts but will scale all variables, including binary/dummy variables.
 #'    "none" will not scale any variable.
 prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
-                      ordered_coding = c("dummy", "stairstep", "integer", "none"),
+                      ordered_coding = c("one-hot", "dummy", "stairstep", "integer", "none"),
+                      unordered_coding = c("one-hot", "dummy"),
                       scale = c("mean_2sd", "mean_sd_all", 
                                 "median_2GMD", "median_GMD_all", "none")) {
   # Argument checks
@@ -123,17 +125,13 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
   }
   
   # Handle X
-  # Factor variables with only 2 levels will be converted to 1/0 integer
-  # Note: This would be handled via the model.matrix call below, but this would
-  #       change the variable name (by adding the name of the level). 
-  X[] <- lapply(X, function(z) if (is.factor(z) && nlevels(z) == 2) as.integer(z) - 1 else z)
-  
   # Ordered factor variables will be coded according to ordered_coding input 
   ordered_coding <- match.arg(ordered_coding)
   f <- function(z) {
     if (is.ordered(z)) {
       switch(ordered_coding,
              "dummy" = factor(z, ordered = FALSE),
+             "one-hot" = factor(z, ordered = FALSE),
              "stairstep" = stairstep_coding(z),
              "integer" = as.integer(z) - 1,
              z)
@@ -144,8 +142,15 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
   X[] <- lapply(X, f)
   
   # The remaining unordered factors will be converted to dummy variables
-  if (any(sapply(X, is.factor)))
-    X <- model.matrix.lm(~ ., X, na.action = "na.pass")[, -1] # X is now a matrix
+  unordered_coding <- match.arg(unordered_coding)
+  browser()
+  if (any(sapply(X, is.factor))) {
+    if (unordered_coding == "dummy") {
+      X <- model.matrix.lm(~ ., X, na.action = "na.pass")[, -1] 
+    } else {
+      X <- model.matrix.lm(~ 0 + ., X, na.action = "na.pass")[, -1] 
+    }
+  } # X is now a matrix
   
   # Omit constant columns
   idx_const <- constant_columns(X)
