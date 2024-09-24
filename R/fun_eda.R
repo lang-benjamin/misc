@@ -143,7 +143,6 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
   
   # The remaining unordered factors will be converted to dummy variables
   unordered_coding <- match.arg(unordered_coding)
-  browser()
   if (any(sapply(X, is.factor))) {
     if (unordered_coding == "dummy") {
       X <- model.matrix.lm(~ ., X, na.action = "na.pass")[, -1] 
