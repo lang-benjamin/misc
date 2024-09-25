@@ -10,15 +10,17 @@ print_kbl <- function(data, height = "500px", align = "r", digits = 2, caption =
     kableExtra::scroll_box(height = height, width = "100%")
 }
 
-# Function is taken from John Curtin: https://github.com/jjcurtin/lab_support/blob/main/fun_eda.R
-# Somewhat unformatted printing of text responses for categorical variables.
-# Used primarily to confirm that responses are valid and tidy
-print_responses <- function(name, column){
-  unique(column) |>
-    na.omit() |>
-    stringr::str_c(collapse = ", ") |>
-    stringr::str_c(name, ": ", ., "\n") |>
-    cat()
+# Print levels or unique values of factor / character variables in a data frame
+print_levels <- function(d) {
+  for (x in names(d)) {
+    if (is.factor(d[[x]])) {
+      cat("Variable:", x, "\n")
+      cat("Levels:", paste(levels(d[[x]]), collapse = "; "), "\n\n")
+    } else if (is.character(d[[x]])) {
+      cat("Variable:", x, "\n")
+      cat("Unique Values:", paste(unique(d[[x]]), collapse = "; "), "\n\n")
+    }
+  }
 }
 
 #' Identify constant columns of a matrix
