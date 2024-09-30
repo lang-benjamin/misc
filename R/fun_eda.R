@@ -69,8 +69,8 @@ stairstep_coding <- function(fct) {
 #'    "mean_sd_all" and "median_GMD_all" are the counterparts but will scale all variables, including binary/dummy variables.
 #'    "none" will not scale any variable.
 prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
-                      ordered_coding = c("one-hot", "dummy", "stairstep", "integer", "none"),
-                      unordered_coding = c("one-hot", "dummy"),
+                      ordered_coding = c("dummy", "one-hot", "integer", "stairstep", "none"),
+                      unordered_coding = c("dummy", "one-hot"),
                       scale = c("mean_2sd", "mean_sd_all", 
                                 "median_2GMD", "median_GMD_all", "none")) {
   # Argument checks
