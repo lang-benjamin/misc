@@ -46,8 +46,8 @@ rm(new_env)
 #'    The element 'p_actual' contains the number of predictors after data processing (e.g. after converting into dummy variables)
 apply_KFOCI <- function(d, y_name, y_yes_level = NULL, 
                         scale = c("mean_2sd", "mean_sd_all", "median_2GMD", "median_GMD_all", "none"),
-                        ordered_coding = c("integer", "one-hot", "dummy", "none"),
-                        unordered_coding = c("one-hot", "dummy"),
+                        ordered_coding = c("integer", "dummy", "one-hot", "none"),
+                        unordered_coding = c("dummy", "one-hot"),
                         Knn = NULL, numCores = parallel::detectCores(), 
                         R = 1, subsampling = FALSE) {
   # Argument checks
