@@ -64,6 +64,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     stop("R should be a positive integer.")
   
   ordered_coding <- match.arg(ordered_coding)
+  unordered_coding <- match.arg(unordered_coding)
   scale <- match.arg(scale)
   XY <- prep_data(d = d, y_name = y_name, y_yes_level = y_yes_level, 
                   remove_na = TRUE, ordered_coding = ordered_coding, 
