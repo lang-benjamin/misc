@@ -70,6 +70,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
                   remove_na = TRUE, ordered_coding = ordered_coding, 
                   unordered_coding = unordered_coding, scale = scale)
   X <- XY$X
+  X_unscaled <- if (scale == "none") X else XY$X_unscaled
   Y <- XY$Y
   
   # Prepare for KFOCI
@@ -87,11 +88,13 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   if (R == 1) {
     selected <- KFOCI(Y = Y, X = X, k = kernlab::rbfdot(1 / (2 * bw^2)), 
                       Knn = k_Knn, numCores = numCores)
+    new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
+    names(new_data)[ncol(new_data)] <- colnames(d)[idx_y]
     return(list(selected_indices = selected, 
                 selected_names = colnames(X)[selected],
                 selections = NA,
                 ranks = NA,
-                p_actual = ncol(X)))
+                new_data = new_data))
   }
   # Selection matrix that identifies if a variable was selected or not
   S <- matrix(0L, nrow = ncol(X), ncol = R)
@@ -138,11 +141,13 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     selected_indices <- multi_select(S)
     selected_names <- colnames(X)[selected_indices]
   }
+  new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
+  names(new_data)[ncol(new_data)] <- colnames(d)[idx_y]
   return(list(selected_indices = selected_indices, 
               selected_names = selected_names, 
               selections = t(S), 
               ranks = t(Rk),
-              p_actual = ncol(X)))
+              new_data = new_data))
 }
 
 #' Plot most frequent tuples of ranks from selected variables

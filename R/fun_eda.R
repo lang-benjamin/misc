@@ -71,8 +71,8 @@ stairstep_coding <- function(fct) {
 prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
                       ordered_coding = c("dummy", "one-hot", "integer", "stairstep", "none"),
                       unordered_coding = c("dummy", "one-hot"),
-                      scale = c("mean_2sd", "mean_sd_all", 
-                                "median_2GMD", "median_GMD_all", "none")) {
+                      scale = c("none", "mean_2sd", "mean_sd_all", 
+                                "median_2GMD", "median_GMD_all")) {
   # Argument checks
   if (!is.data.frame(d))
     stop("d should be a data frame.")
@@ -160,8 +160,11 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
     warning(paste0("Constant column ", idx_const, " removed.\n"))
   }
   
-  # Scale variables in X
+  X_unscaled <- X
   scale <- match.arg(scale)
+  if (scale == "none")
+    return(list(X = X_unscaled, Y = y))
+  
   # Depending on scale argument, possibly only scale non-binary ones
   idx_not_binary <- apply(X, 2, function(z) length(unique(z)) != 2)
   
@@ -183,5 +186,6 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
     X <- base::scale(X, center = apply(X, 2, median, na.rm = TRUE), 
                      scale = apply(X, 2, function(z) Hmisc::GiniMd(z, na.rm = TRUE)))
   }
-  list(X = X, Y = y)
+  
+  list(X = X, X_unscaled = X_unscaled, Y = y)
 }
