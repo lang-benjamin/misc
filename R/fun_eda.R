@@ -68,7 +68,7 @@ stairstep_coding <- function(fct) {
 #'    "mean_2sd" scales all continuous and integer-valued variables that are not binary by subtracting the mean and dividing by 2 times the standard deviation. Option "median_2GMD" is a robust alternative subtracting the median and dividing by 2 times the Gini Mean Difference.
 #'    "mean_sd_all" and "median_GMD_all" are the counterparts but will scale all variables, including binary/dummy variables.
 #'    "none" will not scale any variable.
-prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = TRUE,
+prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
                       ordered_coding = c("dummy", "one-hot", "integer", "stairstep", "none"),
                       unordered_coding = c("dummy", "one-hot"),
                       scale = c("none", "mean_2sd", "mean_sd_all", 
