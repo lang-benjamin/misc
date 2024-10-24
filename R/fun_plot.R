@@ -10,7 +10,7 @@ theme_classical <- function(base_family = "", base_size = 12,
   axis_title_family <- base_family
   strip_text_size <- base_size + 1
   strip_text_col <- if (borders_gray) "gray35" else "black" 
-  title_col <- "black" # if (borders_gray) "gray30" else "black"
+  title_col <- "black"
   title_size <- base_size + 2
   subtitle_size <- axis_title_size + 1
   subtitle_col <- "black"
@@ -69,95 +69,4 @@ theme_classical <- function(base_family = "", base_size = 12,
     ret <- ret + ggplot2::theme(plot.margin = plot_margin)
 
   ret
-}
-
-# Mixture of Hmisc::ggfreqScatter, Hmisc::movStats and https://thestatsgeek.com/2014/09/13/checking-functional-form-in-logistic-regression-using-loess/
-plot_scatter <- function(data, x, y, binary_on_logit = FALSE, 
-                         fcolors = viridis::viridis(10)) {
-  if (length(unique(data[[y]])) == 2) { 
-    # y is binary
-    if (is.factor(data[[y]]))
-      data[[y]] <- as.integer(data[[y]]) - 1 # make sure it's integer based
-    ms <- movStats(reformulate(x, y), melt = TRUE, data = data)
-    if (binary_on_logit) {
-      ms_logit <- ms
-      ms$Scale <- "Original"
-      ms_logit$Scale = "Logit"
-      ms_logit[, (y) := lapply(.SD, qlogis), .SDcols = y]
-      ms <- bind_rows(ms, ms_logit)
-    
-      p1 <- ggfreqScatter(x = data[[x]], y = data[[y]], fcolors = fcolors) +
-        geom_line(mapping = aes(x = .data[[x]], y = .data[[y]], 
-                                color = NULL, alpha = NULL, label = NULL), 
-                  data = dplyr::filter(ms, Statistic == "Proportion", Scale == "Original")) +
-        labs(x = paste(x), y = paste(y),
-             caption = "Black line: Moving proportion (original scale)")
-      p2 <- ggplot(data = dplyr::filter(ms, Statistic == "Proportion", Scale == "Logit"),
-                   mapping = aes(x = .data[[x]], y = .data[[y]])) +
-        geom_line() +
-        labs(x = paste(x), y = paste(y),
-             caption = "Black line: Logit of moving proportion") 
-      return(plot_grid(p1, p2))
-    } else {
-      p <- ggfreqScatter(x = data[[x]], y = data[[y]], fcolors = fcolors) +
-        geom_line(mapping = aes(x = .data[[x]], y = .data[[y]], 
-                                color = NULL, alpha = NULL, label = NULL), 
-                  data = dplyr::filter(ms, Statistic == "Proportion")) +
-        labs(x = paste(x), y = paste(y),
-             caption = "Black line: Moving proportion")
-      return(p)
-    }
-  } else {
-    ms <- movStats(reformulate(x, y), melt = TRUE, data = data)
-    p <- ggfreqScatter(x = data[[x]], y = data[[y]], fcolors = fcolors) +
-      geom_line(mapping = aes(x = .data[[x]], y = .data[[y]], 
-                              alpha = NULL, label = NULL), 
-                color = I('blue'), data = filter(ms, Statistic == "Mean")) +
-      geom_line(mapping = aes(x = .data[[x]], y = .data[[y]], 
-                              color = NULL, alpha = NULL, label = NULL), 
-                data = filter(ms, Statistic == "Median")) +
-      labs(x = paste(x), y = paste(y),
-           caption = "Black line: moving median\nBlue line: moving mean")
-    return(p)
-  }
-}                                  
-
-# Plotting distribution via dotsinterval from ggdist
-plot_dotsinterval <- function(data, x, bg_color = "white") {
-  d_med <- summarise(data, med = median(.data[[x]], na.rm = TRUE))
-  p <- data %>%
-    ggplot(aes(x = .data[[x]], fill = after_stat(level))) +
-    # quantile interval should cover 50% (0.25 to 0.75 quantile) and 
-    # 90% (0.05 to 0.95 quantile) of the data
-    stat_dotsinterval(point_interval = "median_qi", .width = c(0.5, 0.9), slab_linetype = "blank") +
-    geom_text(data = d_med, aes(x = med, y = -0.005, label = round(med, 2), fill = NULL), position = position_dodge(width = 0.8), size = 3, vjust = 1.5) +
-    scale_color_manual(name = "% sample covered", values = scales::brewer_pal()(3)[-1], labels = c("90%", "50%", "<10%"), aesthetics = "fill") +
-    theme_classical(arrows = FALSE, bg_color = bg_color) + 
-    theme(axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          axis.title.y = element_blank(),
-          axis.line.y = element_blank(),
-          legend.position = "bottom")
-  
-  # In case data has labels attached to their variables, we will use them
-  if (!is.na(label(data[x]))) p + ggeasy::easy_labs() else p # TODO: switch to Hmisc::hlabs
-}
-
-plot_grouped_dotsinterval <- function(data, x, y, g) {
-  #d_med <- summarise(group_by(data, .data[[x]]), med = median(.data[[y]], na.rm = TRUE))
-  p <- data %>%
-    ggplot(aes(x = .data[[x]], y = .data[[y]], fill = .data[[g]])) +
-    # quantile interval should cover 50% (0.25to 0.75 quantile) and 
-    # 90% (0.05 to 0.95 quantile) of the data
-    stat_dotsinterval(point_interval = "median_qi", .width = c(0.5, 0.9), slab_linetype = "blank") +
-    scale_color_manual(name = "% sample covered", values = scales::brewer_pal()(3)[-1], labels = c("90%", "50%", "<10%"), aesthetics = "slab_fill") +
-    #geom_text(data = d_med, aes(.data[[x]], med, label = round(med, 2), fill = NULL), position = position_dodge(width = 0.8), size = 3, vjust = 1.5) +
-    theme_classical(arrows = FALSE) +
-    coord_flip() +
-    theme(axis.ticks.y = element_blank(),
-          axis.line.y = element_blank(),
-          legend.position = "bottom")
-  
-  # In case data has labels attached to their variables, we will use them
-  if (!is.na(label(data[x]))) p + ggeasy::easy_labs() else p # TODO: switch to Hmisc::hlabs
 }
