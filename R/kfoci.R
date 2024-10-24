@@ -175,7 +175,6 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
 }
 
 plot_rank_freq <- function(l) {
-  # TODO: include possibility to filter variables
   library(tidyr)
   library(dplyr)
   library(ggplot2)
