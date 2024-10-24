@@ -1,5 +1,5 @@
 theme_classical <- function(base_family = "", base_size = 12,
-                            borders_gray = FALSE, bg_color = "white",
+                            borders_gray = TRUE, bg_color = "white",
                             arrows = TRUE, plot_margin = NULL) {
   # default plot margin ggplot2::theme_classic()$plot.margin
   axis_col <- if (borders_gray) "gray70" else "black" # axis line and tick mark color
