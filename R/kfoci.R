@@ -28,11 +28,12 @@ rm(new_env)
 #' @param y_name The variable name in d that represents y; can be of length > 1.
 #' @param y_yes_level If y is a factor with two levels, y_yes_level is the y value that represents 'Yes', to be coded 1 rather than 0
 #' @param scale Scaling option for variables in X. 
-#'    "mean_2sd" scales all continuous and integer-valued variables that are not binary by subtracting the mean and dividing by 2 times the standard deviation. Option "median_2GMD" is a robust alternative subtracting the median and dividing by 2 times the Gini Mean Difference.
-#'    "mean_sd_all" and "median_GMD_all" are the counterparts but will scale all variables, including binary/dummy variables.
+#'    "mean_2sd" scales all continuous and integer-valued variables that are not binary by subtracting the mean and dividing by 2 times the standard deviation. 
+#'    "mean_sd_all" is the counterpart but will scale all variables, including binary/dummy variables.
 #'    "none" will not scale any variable.
-#' @param ordered_coding How should ordinal factor variables be coded? "integer" converts the ordinal variable into an integer-valued variable (the default), "dummy" does dummy coding, "stairstep" introduces stairstep contrasts (essentially backward difference coding) and "none" leaves the factors as they are.
-#' @param Knn Same as Knn in KPC::KFOCI (after excluding NAs). If NULL, the default from KPC::KFOCI will be used.
+#' @param ordered_coding How should ordinal factor variables be coded? "integer" converts the ordinal variable into an integer-valued variable (the default), "dummy" does dummy coding,, "one-hot" does one-hot encoding and "none" leaves the factors as they are.
+#' @param unordered_coding How should non-ordinal factor variables be coded? "dummy" does dummy coding, "one-hot" does one-hot encoding.
+#' @param Knn Same as in KPC::KFOCI but defined as function of the sample size n. Constant values are allowed.
 #' @param numCores Same as numCores from KPC::KFOCI.
 #' @param R Positive integer. Number of times KFOCI is called repeatedly, see details.
 #' @param subsampling Logical. If TRUE perform random subsampling to assess stability of the selection. If FALSE (default) random subsampling is not done.
@@ -43,21 +44,27 @@ rm(new_env)
 #' @return A list. If R = 1, then selected_indices is the return value from KFOCI and selected_names are the corresponding variable names in d.
 #'    If R > 1, 'selected_indices' is the stable selection of variables according to the algorithm in Section 2.3 in Kormaksson et al. (https://doi.org/10.1002/sim.8955) and 'selected_names' are the corresponding variable names in d.
 #'    The list element 'selections' contains a matrix indicating whether each of the variables was selected (1) or not (0) in each of the R repetitions, and 'ranks' contains the rank of each variable as obtained by KFOCI for each of the R runs.
-#'    The element 'p_actual' contains the number of predictors after data processing (e.g. after converting into dummy variables)
+#'    The element 'new_data' contains the data set after factor variables have been transformed but without scaling, restricted to the selected variables.
 apply_KFOCI <- function(d, y_name, y_yes_level = NULL, 
-                        scale = c("mean_2sd", "mean_sd_all", "median_2GMD", "median_GMD_all", "none"),
+                        scale = c("mean_2sd", "mean_sd_all", "none"),
                         ordered_coding = c("integer", "dummy", "one-hot", "none"),
                         unordered_coding = c("dummy", "one-hot"),
-                        Knn = NULL, numCores = parallel::detectCores(), 
-                        R = 1, subsampling = FALSE) {
+                        Knn = function(n) max(min(ceiling(n/20), 20), 2),
+                        numCores = parallel::detectCores(), R = 1, 
+                        subsampling = FALSE) {
   # Argument checks
   if (!is.data.frame(d))
     stop("d should be a data frame.")
   if (is.character(y_name) && !all(y_name %in% names(d)))
     stop("y_name should be a string or a vector of strings that match the response variable(s) in d.")
-  if (!is.null(Knn))
+  if (is.numeric(Knn)) {
     if (floor(Knn) != Knn || Knn <= 0)
       stop("Knn should be a positive integer.")
+    const <- Knn
+    Knn <- function(n) const
+  } else if (!is.function(Knn)) {
+    stop("Knn should be a function of the sample size n")
+  }
   if (!is.logical(subsampling))
     stop("subsampling should be logical.")
   if (floor(R) != R || R <= 0)
@@ -74,8 +81,9 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   Y <- XY$Y
   
   # Prepare for KFOCI
-  # Define Knn
-  k_Knn <- if (is.null(Knn)) min(ceiling(nrow(X)/20), 20) else Knn
+  k_Knn <- Knn(nrow(X))
+  if (floor(k_Knn) != k_Knn || k_Knn <= 0)
+    stop("Knn should be a positive integer.")
   # Set package default for bandwidth
   bw <- stats::median(stats::dist(Y))
   # If, however, Y is 1-dimensional and binary, then the median (of pairwise
@@ -105,10 +113,11 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     if (subsampling) {
       # Uncertainty will be explored by performing random subsampling
       i_sub <- sample(seq_len(nrow(X)), round(0.632 * nrow(X)), replace = FALSE)
-      #i_sub <- sample(seq_len(nrow(X)), floor(nrow(X) / 2), replace = FALSE)
       X_sub <- X[i_sub, ]
       Y_sub <- if (length(idx_y) > 1) Y[i_sub, ] else Y[i_sub]
-      k_Knn <- if (is.null(Knn)) min(ceiling(nrow(X_sub)/20), 20) else Knn
+      k_Knn <- Knn(nrow(X_sub))
+      if (floor(k_Knn) != k_Knn || k_Knn <= 0)
+        stop("Knn should be a positive integer.")
       bw <- stats::median(stats::dist(Y_sub))
       if ((length(idx_y) == 1 && length(unique(Y_sub)) == 2) || bw == 0)
         bw <- base::mean(stats::dist(Y_sub))
@@ -135,15 +144,15 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   # order of relevance. Otherwise return the stable selection
   if (all(duplicated(t(Rk))[-1])) {
     sorted_idx <- order(Rk[, 1])
-    selected_indices <- sorted_idx[Rk[sorted_idx, 1] < nrow(Rk) + 1]
-    selected_names <- names(Rk[selected_indices, 1])
+    selected <- sorted_idx[Rk[sorted_idx, 1] < nrow(Rk) + 1]
+    selected_names <- names(Rk[selected, 1])
   } else {
-    selected_indices <- multi_select(S)
-    selected_names <- colnames(X)[selected_indices]
+    selected <- multi_select(S)
+    selected_names <- colnames(X)[selected]
   }
   new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
   names(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
-  return(list(selected_indices = selected_indices, 
+  return(list(selected_indices = selected, 
               selected_names = selected_names, 
               selections = t(S), 
               ranks = t(Rk),
