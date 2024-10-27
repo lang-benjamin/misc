@@ -97,7 +97,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     selected <- KFOCI(Y = Y, X = X, k = kernlab::rbfdot(1 / (2 * bw^2)), 
                       Knn = k_Knn, numCores = numCores)
     new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
-    colnames(new_data)[(ncol(new_data) - length(idx_y)) <- colnames(X_unscaled)[selected]
+    colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
     colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
     return(list(selected_indices = selected, 
                 selected_names = colnames(X)[selected],
@@ -152,7 +152,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     selected_names <- colnames(X)[selected]
   }
   new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
-  colnames(new_data)[(ncol(new_data) - length(idx_y)) <- colnames(X_unscaled)[selected]
+  colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
   colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
   return(list(selected_indices = selected, 
               selected_names = selected_names, 
