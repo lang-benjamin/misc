@@ -96,6 +96,12 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   if (R == 1) {
     selected <- KFOCI(Y = Y, X = X, k = kernlab::rbfdot(1 / (2 * bw^2)), 
                       Knn = k_Knn, numCores = numCores)
+    if (length(selected) == 1 && selected == 0L)
+      return(list(selected_indices = integer(0),
+                  selected_names = NULL,
+                  selections = NA,
+                  ranks = NA,
+                  new_data = data.frame()))
     new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
     colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
     colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
@@ -131,18 +137,20 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
                              k = kernlab::rbfdot(1 / (2 * bw^2)),
                              Knn = k_Knn, numCores = numCores)
     }
-    S[selected_vars, j] <- 1
-    for (i in seq_along(selected_vars)) {
-      Rk[which(colnames(X) == colnames(X)[selected_vars[i]]), j] <- i
+    if (!(length(selected_vars) == 1 && selected_vars == 0L)) {
+      S[selected_vars, j] <- 1
+      for (i in seq_along(selected_vars)) {
+        Rk[which(colnames(X) == colnames(X)[selected_vars[i]]), j] <- i
+      }
     }
   }
   rownames(S) <- rownames(Rk) <- colnames(X)
   colnames(S) <- colnames(Rk) <- paste0("rep_", seq_len(R))
   
   # Check if all calls to KFOCI resulted in the same selected variables 
-  # and the same ranking order (i.e. all columns of Rk are the same)
+  # and the same ranking order (i.e. all columns of Rk are the same).
   # If so, return indices and names of the selected variables with decreasing
-  # order of relevance. Otherwise return the stable selection
+  # order of relevance. Otherwise return the stable selection.
   if (all(duplicated(t(Rk))[-1])) {
     sorted_idx <- order(Rk[, 1])
     selected <- sorted_idx[Rk[sorted_idx, 1] < nrow(Rk) + 1]
@@ -151,9 +159,13 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     selected <- multi_select(S)
     selected_names <- colnames(X)[selected]
   }
-  new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
-  colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
-  colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
+  if (length(selected) == 0 && typeof(selected) == "integer") {
+    new_data = data.frame()
+  } else {
+    new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
+    colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
+    colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
+  }
   return(list(selected_indices = selected, 
               selected_names = selected_names, 
               selections = t(S), 
