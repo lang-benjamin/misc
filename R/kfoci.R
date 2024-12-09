@@ -1,23 +1,11 @@
 library(KPC)
+if (!require(knockofftools)) 
+  devtools::install_github("Novartis/knockofftools")
 
-# For stable selection of variables according to the heuristic multiple selection algorithm from Kormaksson et al.
-# 'Sequential knockoffs for continuous and categorical predictors: With application to a large psoriatic arthritis clinical
-#  trial pool.' Statistics in Medicine. 2021;1–16.
-# we need two functions from https://github.com/Novartis/knockofftools/tree/main (no R package yet available on CRAN)
-# Also, load some functions from fun_eda.R
 new_env <- new.env()
-
-devtools::source_url("https://github.com/Novartis/knockofftools/blob/main/R/internal.R?raw=true", local = new_env)
-find_single_optimal_variable_set <- new_env$find_single_optimal_variable_set
-
-devtools::source_url("https://github.com/Novartis/knockofftools/blob/main/R/knockoff_filters.R?raw=true", local = new_env)
-multi_select <- new_env$multi_select
-
 devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/fun_eda.R?raw=true", local = new_env)
 constant_columns <- new_env$constant_columns
-stairstep_coding <- new_env$stairstep_coding
 prep_data <- new_env$prep_data
-
 rm(new_env)
 
 #  Part of the following code was inspired by qeML::qeFOCI by Norm Matloff
