@@ -81,6 +81,12 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   if ((length(idx_y) == 1 && length(unique(Y)) == 2) || bw == 0)
     bw <- base::mean(stats::dist(Y))
   
+  # Selection matrix that identifies if a variable was selected or not
+  S <- vector("integer", ncol(X))
+  # Matrix of ranks that stores rank of each variable per run 
+  # (initialize with dummy value ncol(X) + 1 as rank, corresponding to 'not selected')
+  Rk <- rep.int(ncol(X) + 1, ncol(X))
+  names(S) <- names(Rk) <- colnames(X)
   if (R == 1) {
     selected <- KFOCI(Y = Y, X = X, k = kernlab::rbfdot(1 / (2 * bw^2)), 
                       Knn = k_Knn, numCores = numCores)
@@ -90,20 +96,19 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
                   selections = NA,
                   ranks = NA,
                   new_data = data.frame()))
+    S[selected] <- 1
+    for (i in seq_along(selected)) {
+      Rk[which(colnames(X) == colnames(X)[selected[i]])] <- i
+    }
     new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
     colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
     colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
     return(list(selected_indices = selected, 
                 selected_names = colnames(X)[selected],
-                selections = NA,
-                ranks = NA,
+                selections = S,
+                ranks = Rk,
                 new_data = new_data))
   }
-  # Selection matrix that identifies if a variable was selected or not
-  S <- matrix(0L, nrow = ncol(X), ncol = R)
-  # Matrix of ranks that stores rank of each variable per run 
-  # (initialize with dummy value n(col) + 1 as rank, corresponding to 'not selected')
-  Rk <- matrix(ncol(X) + 1, nrow = ncol(X), ncol = R)
   for (j in 1:R) {
     if (subsampling) {
       # Uncertainty will be explored by performing random subsampling
@@ -132,9 +137,6 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
       }
     }
   }
-  rownames(S) <- rownames(Rk) <- colnames(X)
-  colnames(S) <- colnames(Rk) <- paste0("rep_", seq_len(R))
-  
   # Check if all calls to KFOCI resulted in the same selected variables 
   # and the same ranking order (i.e. all columns of Rk are the same).
   # If so, return indices and names of the selected variables with decreasing
