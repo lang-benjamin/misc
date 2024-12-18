@@ -92,10 +92,10 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
   
   # Define X and y
   y <- d[, idx_y, drop = TRUE]
-  X <- d[, -idx_y]
+  X <- d[, -idx_y, drop = FALSE]
   if (remove_na) {
     ok <- complete.cases(X, y) # remove NAs
-    X <- X[ok, ]
+    X <- X[ok, , drop = FALSE]
     y <- if (length(idx_y) > 1) y[ok, ] else y[ok]
   }
   
