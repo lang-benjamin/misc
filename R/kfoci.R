@@ -93,8 +93,8 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     if (length(selected) == 1 && selected == 0L)
       return(list(selected_indices = integer(0),
                   selected_names = NULL,
-                  selections = NA,
-                  ranks = NA,
+                  selections = S,
+                  ranks = Rk,
                   new_data = data.frame()))
     S[selected] <- 1
     for (i in seq_along(selected)) {
