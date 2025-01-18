@@ -182,7 +182,7 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
   library(cdparcoord)
   idx_freq <- which(base::colMeans(l$selections) >= plot_freq)
   idx_vars <- match(plot_vars, colnames(Rk))
-  plot_idx <- base::union(idx_freq, idx_vars)
+  plot_idx <- base::intersect(idx_freq, idx_vars)
   Rk <- as.data.frame(Rk)
   Rk <- Rk[, plot_idx]
   Rk[] <- lapply(Rk, function(x) factor(x, ordered = TRUE, 
@@ -253,7 +253,7 @@ plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
   # Define elements for plotting
   idx_freq <- which(base::colMeans(l$selections) >= plot_freq)
   idx_vars <- match(plot_vars, colnames(l$selections))
-  plot_idx <- base::union(idx_freq, idx_vars)
+  plot_idx <- base::intersect(idx_freq, idx_vars)
   d <- s_freq[plot_idx, ]
   colors <- if (nrow(d) == sum(as.integer(d$selected == 1))) "#F28E2B" else c("black", "#F28E2B")
   plot_title <- if (is.null(title)) paste("Frequency of individual selected variables across", nrow(l$selections), "repetitions") else title
