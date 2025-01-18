@@ -81,13 +81,13 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   if ((length(idx_y) == 1 && length(unique(Y)) == 2) || bw == 0)
     bw <- base::mean(stats::dist(Y))
   
-  # Selection matrix that identifies if a variable was selected or not
-  S <- vector("integer", ncol(X))
-  # Matrix of ranks that stores rank of each variable per run 
-  # (initialize with dummy value ncol(X) + 1 as rank, corresponding to 'not selected')
-  Rk <- rep.int(ncol(X) + 1, ncol(X))
-  names(S) <- names(Rk) <- colnames(X)
   if (R == 1) {
+    # Selection vector that identifies if a variable was selected or not
+    S <- vector("integer", ncol(X))
+    # Vector of ranks that stores rank of each variable
+    # (initialize with dummy value ncol(X) + 1 as rank, corresponding to 'not selected')
+    Rk <- rep.int(ncol(X) + 1, ncol(X))
+    names(S) <- names(Rk) <- colnames(X)
     selected <- KFOCI(Y = Y, X = X, k = kernlab::rbfdot(1 / (2 * bw^2)), 
                       Knn = k_Knn, numCores = numCores)
     if (length(selected) == 1 && selected == 0L)
@@ -108,59 +108,64 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
                 selections = S,
                 ranks = Rk,
                 new_data = new_data))
-  }
-  for (j in 1:R) {
-    if (subsampling) {
-      # Uncertainty will be explored by performing random subsampling
-      i_sub <- sample(seq_len(nrow(X)), round(0.632 * nrow(X)), replace = FALSE)
-      X_sub <- X[i_sub, ]
-      Y_sub <- if (length(idx_y) > 1) Y[i_sub, ] else Y[i_sub]
-      k_Knn <- Knn(nrow(X_sub))
-      if (floor(k_Knn) != k_Knn || k_Knn <= 0)
-        stop("Knn should be a positive integer.")
-      bw <- stats::median(stats::dist(Y_sub))
-      if ((length(idx_y) == 1 && length(unique(Y_sub)) == 2) || bw == 0)
-        bw <- base::mean(stats::dist(Y_sub))
-      selected_vars <- KFOCI(Y = Y_sub, X = X_sub, 
-                             k = kernlab::rbfdot(1 / (2 * bw^2)),
-                             Knn = k_Knn, numCores = numCores)
-    } else {
-      # Explore random breaking of ties by calling KFOCI R times (on same data)
-      selected_vars <- KFOCI(Y = Y, X = X, 
-                             k = kernlab::rbfdot(1 / (2 * bw^2)),
-                             Knn = k_Knn, numCores = numCores)
-    }
-    if (!(length(selected_vars) == 1 && selected_vars == 0L)) {
-      S[selected_vars, j] <- 1
-      for (i in seq_along(selected_vars)) {
-        Rk[which(colnames(X) == colnames(X)[selected_vars[i]]), j] <- i
+  } else {
+    S <- matrix(0L, nrow = ncol(X), ncol = R)
+    Rk <- matrix(ncol(X) + 1, nrow = ncol(X), ncol = R)
+    rownames(S) <- rownames(Rk) <- colnames(X)
+    colnames(S) <- colnames(Rk) <- paste0("rep_", seq_len(R))
+    for (j in 1:R) {
+      if (subsampling) {
+        # Uncertainty will be explored by performing random subsampling
+        i_sub <- sample(seq_len(nrow(X)), round(0.632 * nrow(X)), replace = FALSE)
+        X_sub <- X[i_sub, ]
+        Y_sub <- if (length(idx_y) > 1) Y[i_sub, ] else Y[i_sub]
+        k_Knn <- Knn(nrow(X_sub))
+        if (floor(k_Knn) != k_Knn || k_Knn <= 0)
+          stop("Knn should be a positive integer.")
+        bw <- stats::median(stats::dist(Y_sub))
+        if ((length(idx_y) == 1 && length(unique(Y_sub)) == 2) || bw == 0)
+          bw <- base::mean(stats::dist(Y_sub))
+        selected_vars <- KFOCI(Y = Y_sub, X = X_sub, 
+                               k = kernlab::rbfdot(1 / (2 * bw^2)),
+                               Knn = k_Knn, numCores = numCores)
+      } else {
+        # Explore random breaking of ties by calling KFOCI R times (on same data)
+        selected_vars <- KFOCI(Y = Y, X = X, 
+                               k = kernlab::rbfdot(1 / (2 * bw^2)),
+                               Knn = k_Knn, numCores = numCores)
+      }
+      if (!(length(selected_vars) == 1 && selected_vars == 0L)) {
+        S[selected_vars, j] <- 1
+        for (i in seq_along(selected_vars)) {
+          Rk[which(colnames(X) == colnames(X)[selected_vars[i]]), j] <- i
+        }
       }
     }
+    # Check if all calls to KFOCI resulted in the same selected variables 
+    # and the same ranking order (i.e. all columns of Rk are the same).
+    # If so, return indices and names of the selected variables with decreasing
+    # order of relevance. Otherwise return the stable selection.
+    if (all(duplicated(t(Rk))[-1])) {
+      sorted_idx <- order(Rk[, 1])
+      selected <- sorted_idx[Rk[sorted_idx, 1] < nrow(Rk) + 1]
+      selected_names <- names(Rk[selected, 1])
+    } else {
+      selected <- multi_select(S)
+      selected_names <- colnames(X)[selected]
+    }
+    if (length(selected) == 0 && typeof(selected) == "integer") {
+      new_data = data.frame()
+    } else {
+      new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
+      colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
+      colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
+    }
+    return(list(selected_indices = selected, 
+                selected_names = selected_names, 
+                selections = t(S), 
+                ranks = t(Rk),
+                new_data = new_data))
   }
-  # Check if all calls to KFOCI resulted in the same selected variables 
-  # and the same ranking order (i.e. all columns of Rk are the same).
-  # If so, return indices and names of the selected variables with decreasing
-  # order of relevance. Otherwise return the stable selection.
-  if (all(duplicated(t(Rk))[-1])) {
-    sorted_idx <- order(Rk[, 1])
-    selected <- sorted_idx[Rk[sorted_idx, 1] < nrow(Rk) + 1]
-    selected_names <- names(Rk[selected, 1])
-  } else {
-    selected <- multi_select(S)
-    selected_names <- colnames(X)[selected]
-  }
-  if (length(selected) == 0 && typeof(selected) == "integer") {
-    new_data = data.frame()
-  } else {
-    new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
-    colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
-    colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
-  }
-  return(list(selected_indices = selected, 
-              selected_names = selected_names, 
-              selections = t(S), 
-              ranks = t(Rk),
-              new_data = new_data))
 }
 
 #' Plot most frequent tuples of ranks from selected variables
