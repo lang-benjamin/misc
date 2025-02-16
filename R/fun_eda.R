@@ -149,7 +149,9 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
     if (unordered_coding == "dummy") {
       X <- model.matrix.lm(~ ., X, na.action = "na.pass")[, -1] 
     } else {
-      X <- model.matrix.lm(~ 0 + ., X, na.action = "na.pass")
+      # contrasts.arg does not work with model.matrix.lm, omit na.pass for now
+      X <- model.matrix(~ 0 + ., X, contrasts.arg = lapply(X[, sapply(X, is.factor), drop = FALSE],
+                                                           contrasts, contrasts = FALSE))
     }
   } # X is now a matrix
   
