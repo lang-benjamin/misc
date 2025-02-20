@@ -27,7 +27,7 @@ devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/prep_dat
 #'    
 #' @return A list. If R = 1, then selected_indices is the return value from KFOCI and selected_names are the corresponding variable names in d.
 #'    If R > 1, 'selected_indices' is the stable selection of variables according to the algorithm in Section 2.3 in Kormaksson et al. (https://doi.org/10.1002/sim.8955) and 'selected_names' are the corresponding variable names in d.
-#'    The list element 'selections' contains a matrix indicating whether each of the variables was selected (1) or not (0) in each of the R repetitions, and 'ranks' contains the rank of each variable as obtained by KFOCI for each of the R runs.
+#'    The list element 'selected' contains a matrix indicating whether each of the variables was selected (1) or not (0) in each of the R repetitions, and 'ranks' contains the rank of each variable as obtained by KFOCI for each of the R runs.
 #'    The element 'new_data' contains the data set after factor variables have been transformed but without scaling, restricted to the selected variables.
 apply_KFOCI <- function(d, y_name, y_yes_level = NULL, 
                         scale = c("mean_2sd", "mean_sd_all", "none"),
@@ -89,7 +89,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     if (Q[1] <= 0 || Q1_pval > 0.05)
       return(list(selected_indices = integer(0),
                   selected_names = NULL,
-                  selections = S,
+                  selected = S,
                   ranks = Rk,
                   new_data = data.frame()))
     
@@ -103,7 +103,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
     return(list(selected_indices = selected, 
                 selected_names = colnames(X)[selected],
-                selections = S,
+                selected = S,
                 ranks = Rk,
                 new_data = new_data))
   } else {
@@ -142,7 +142,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     }
     return(list(selected_indices = selected, 
                 selected_names = selected_names, 
-                selections = t(S), 
+                selected = t(S), 
                 ranks = t(Rk),
                 new_data = new_data))
   }
@@ -159,7 +159,7 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
   if (all(duplicated(Rk)[-1]))
     stop("There is no variation in the tuples of selected variables across the multiple KFOCI calls.")
   library(cdparcoord)
-  idx_freq <- which(base::colMeans(l$selections) >= plot_freq)
+  idx_freq <- which(base::colMeans(l$selected) >= plot_freq)
   idx_vars <- match(plot_vars, colnames(Rk))
   plot_idx <- base::intersect(idx_freq, idx_vars)
   Rk <- as.data.frame(Rk)
@@ -182,19 +182,19 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
 plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
                                 title = NULL, subtitle = NULL, caption = NULL) {
   library(ggplot2)
-  s_freq <- data.frame(selection_freq = as.numeric(colMeans(l$selections)), 
-                       variable_label = colnames(l$selections),
+  s_freq <- data.frame(selection_freq = as.numeric(colMeans(l$selected)), 
+                       variable_label = colnames(l$selected),
                        selected = 0)
   s_freq[l$selected_indices, "selected"] <- 1
   s_freq$selected <- as.factor(s_freq$selected)
   
   # Define elements for plotting
-  idx_freq <- which(base::colMeans(l$selections) >= plot_freq)
-  idx_vars <- match(plot_vars, colnames(l$selections))
+  idx_freq <- which(base::colMeans(l$selected) >= plot_freq)
+  idx_vars <- match(plot_vars, colnames(l$selected))
   plot_idx <- base::intersect(idx_freq, idx_vars)
   d <- s_freq[plot_idx, ]
   colors <- if (nrow(d) == sum(as.integer(d$selected == 1))) "#F28E2B" else c("black", "#F28E2B")
-  plot_title <- if (is.null(title)) paste("Frequency of individual selected variables across", nrow(l$selections), "repetitions") else title
+  plot_title <- if (is.null(title)) paste("Frequency of individual selected variables across", nrow(l$selected), "repetitions") else title
   plot_subtitle <- if (is.null(subtitle)) paste("Variables with selection frequency of at least", round(plot_freq, 2), "are shown") else subtitle
   plot_caption <- if (is.null(caption)) "Frequencies of variables highlighted in orange are selected according to the algorithm from Sec. 2.3 in Kormarksson et al." else caption
   
