@@ -25,7 +25,7 @@ constant_columns <- function(m) {
 #' @param unordered_coding How should unordered factor variables be coded? "dummy" or "one-hot" 
 #' @param scale Scaling option for variables in X. 
 #'    "mean_2sd" scales all continuous and integer-valued variables that are not binary by subtracting the mean and dividing by 2 times the standard deviation. Option "median_2GMD" is a robust alternative subtracting the median and dividing by 2 times the Gini Mean Difference.
-#'    "mean_sd_all" and "median_GMD_all" are the counterparts but will scale all variables, including binary/dummy variables.
+#'    "mean_sd_all" and "median_GMD_all" are the counterparts but will scale all variables, including binary/dummy variables. "median_2GMD" and "median_GMD_all" reuqire Hmisc to be installed.
 #'    "none" will not scale any variable.
 prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
                       ordered_coding = c("dummy", "one-hot", "integer", "none"),
@@ -140,11 +140,13 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
   } 
   if (scale == "median_2GMD") {
     # For all except binary: subtract mean, divide by 2 * Gini's Mean Difference
+    stopifnot(requireNamespace("Hmisc", quietly = TRUE))
     X[, idx_not_binary] <- base::scale(X[, idx_not_binary, drop = FALSE], 
                                        center = apply(X[, idx_not_binary, drop = FALSE], 2, median, na.rm = TRUE),
                                        scale =  apply(X[, idx_not_binary, drop = FALSE], 2, function(z) 2 * Hmisc::GiniMd(z, na.rm = TRUE)))
   }
   if (scale == "median_GMD_all") {
+    stopifnot(requireNamespace("Hmisc", quietly = TRUE))
     X <- base::scale(X, center = apply(X, 2, median, na.rm = TRUE), 
                      scale = apply(X, 2, function(z) Hmisc::GiniMd(z, na.rm = TRUE)))
   }
