@@ -1,11 +1,9 @@
 library(KPC)
-if (!require(knockofftools)) 
+if (!requireNamespace("knockofftools", quietly = TRUE)) 
   devtools::install_github("Novartis/knockofftools")
 
 new_env <- new.env()
-devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/fun_eda.R?raw=true", local = new_env)
-constant_columns <- new_env$constant_columns
-prep_data <- new_env$prep_data
+devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/prep_data.R?raw=true", local = new_env)
 rm(new_env)
 
 #  Part of the following code was inspired by qeML::qeFOCI by Norm Matloff
@@ -24,10 +22,8 @@ rm(new_env)
 #' @param Knn Same as in KPC::KFOCI but defined as function of the sample size n. Constant values are allowed.
 #' @param numCores Same as numCores from KPC::KFOCI.
 #' @param R Positive integer. Number of times KFOCI is called repeatedly, see details.
-#' @param subsampling Logical. If TRUE perform random subsampling to assess stability of the selection. If FALSE (default) random subsampling is not done.
 #'
-#' @details If R > 1 and subsampling = FALSE, KFOCI is called R times to investigate the effect of random breaking of ties for the kNN graphs. 
-#'    If R > 1 and subsampling = TRUE, KFOCI is called R times to investigate the stability of the selection via random subsampling of size 0.632*n.
+#' @details If R > 1, KFOCI is called R times to investigate the effect of random breaking of ties for the kNN graphs. 
 #'    
 #' @return A list. If R = 1, then selected_indices is the return value from KFOCI and selected_names are the corresponding variable names in d.
 #'    If R > 1, 'selected_indices' is the stable selection of variables according to the algorithm in Section 2.3 in Kormaksson et al. (https://doi.org/10.1002/sim.8955) and 'selected_names' are the corresponding variable names in d.
@@ -37,24 +33,14 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
                         scale = c("mean_2sd", "mean_sd_all", "none"),
                         ordered_coding = c("integer", "dummy", "one-hot", "none"),
                         unordered_coding = c("dummy", "one-hot"),
-                        Knn = function(n) max(min(ceiling(n/20), 20), 2),
-                        numCores = parallel::detectCores(), R = 1, 
-                        subsampling = FALSE) {
-  # Argument checks
+                        Knn = max(min(ceiling(nrow(d)/20), 20), 2),
+                        numCores = parallel::detectCores(), R = 1) {
   if (!is.data.frame(d))
     stop("d should be a data frame.")
   if (is.character(y_name) && !all(y_name %in% names(d)))
     stop("y_name should be a string or a vector of strings that match the response variable(s) in d.")
-  if (is.numeric(Knn)) {
-    if (floor(Knn) != Knn || Knn <= 0)
-      stop("Knn should be a positive integer.")
-    const <- Knn
-    Knn <- function(n) const
-  } else if (!is.function(Knn)) {
-    stop("Knn should be a function of the sample size n")
-  }
-  if (!is.logical(subsampling))
-    stop("subsampling should be logical.")
+  if (floor(Knn) != Knn || Knn <= 0)
+    stop("Knn should be a positive integer.")
   if (floor(R) != R || R <= 0)
     stop("R should be a positive integer.")
   
@@ -68,15 +54,9 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   X_unscaled <- if (scale == "none") X else XY$X_unscaled
   Y <- XY$Y
   
-  # Prepare for KFOCI
-  k_Knn <- Knn(nrow(X))
-  if (floor(k_Knn) != k_Knn || k_Knn <= 0)
-    stop("Knn should be a positive integer.")
-  # Set package default for bandwidth
+  # Default bandwidth from KPC::KFOCI
   bw <- stats::median(stats::dist(Y))
-  # If, however, Y is 1-dimensional and binary, then the median (of pairwise
-  # differences) is not appropriate (because of heavy ties in Y).
-  # In this case and in other cases where the median is zero, use mean instead.
+  # If median is zero or if Y is binary, then use mean instead of median
   idx_y <- if (is.character(y_name)) match(y_name, names(d)) else y_name
   if ((length(idx_y) == 1 && length(unique(Y)) == 2) || bw == 0)
     bw <- base::mean(stats::dist(Y))
@@ -89,7 +69,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     Rk <- rep.int(ncol(X) + 1, ncol(X))
     names(S) <- names(Rk) <- colnames(X)
     selected <- KFOCI(Y = Y, X = X, k = kernlab::rbfdot(1 / (2 * bw^2)), 
-                      Knn = k_Knn, numCores = numCores)
+                      Knn = Knn, numCores = numCores)
     if (length(selected) == 1 && selected == 0L)
       return(list(selected_indices = integer(0),
                   selected_names = NULL,
@@ -114,26 +94,9 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     rownames(S) <- rownames(Rk) <- colnames(X)
     colnames(S) <- colnames(Rk) <- paste0("rep_", seq_len(R))
     for (j in 1:R) {
-      if (subsampling) {
-        # Uncertainty will be explored by performing random subsampling
-        i_sub <- sample(seq_len(nrow(X)), round(0.632 * nrow(X)), replace = FALSE)
-        X_sub <- X[i_sub, ]
-        Y_sub <- if (length(idx_y) > 1) Y[i_sub, ] else Y[i_sub]
-        k_Knn <- Knn(nrow(X_sub))
-        if (floor(k_Knn) != k_Knn || k_Knn <= 0)
-          stop("Knn should be a positive integer.")
-        bw <- stats::median(stats::dist(Y_sub))
-        if ((length(idx_y) == 1 && length(unique(Y_sub)) == 2) || bw == 0)
-          bw <- base::mean(stats::dist(Y_sub))
-        selected_vars <- KFOCI(Y = Y_sub, X = X_sub, 
-                               k = kernlab::rbfdot(1 / (2 * bw^2)),
-                               Knn = k_Knn, numCores = numCores)
-      } else {
-        # Explore random breaking of ties by calling KFOCI R times (on same data)
-        selected_vars <- KFOCI(Y = Y, X = X, 
-                               k = kernlab::rbfdot(1 / (2 * bw^2)),
-                               Knn = k_Knn, numCores = numCores)
-      }
+      selected_vars <- KFOCI(Y = Y, X = X, 
+                             k = kernlab::rbfdot(1 / (2 * bw^2)),
+                             Knn = Knn, numCores = numCores)
       if (!(length(selected_vars) == 1 && selected_vars == 0L)) {
         S[selected_vars, j] <- 1
         for (i in seq_along(selected_vars)) {
@@ -150,11 +113,11 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
       selected <- sorted_idx[Rk[sorted_idx, 1] < nrow(Rk) + 1]
       selected_names <- names(Rk[selected, 1])
     } else {
-      selected <- multi_select(S)
+      selected <- knockofftools::multi_select(S)
       selected_names <- colnames(X)[selected]
     }
     if (length(selected) == 0 && typeof(selected) == "integer") {
-      new_data = data.frame()
+      new_data <- data.frame()
     } else {
       new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
       colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
@@ -170,13 +133,12 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
 
 #' Plot most frequent tuples of ranks from selected variables
 #' 
-#' @param l Result list from apply_KFOCI
+#' @param l Result from apply_KFOCI
 #' @param k Number of most frequent tuples being plotted
 #' @param plot_freq Only plot variables that have an individual selection frequency of at least min_freq
 #' @param plot_vars Plot variables in plot_vars in any case
 plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
   Rk <- l$ranks
-  # Check if all rows of the rank matrix are the same
   if (all(duplicated(Rk)[-1]))
     stop("There is no variation in the tuples of selected variables across the multiple KFOCI calls.")
   library(cdparcoord)
@@ -190,47 +152,6 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
                                         labels = c(seq_len(ncol(l$ranks)), 'ns')))
   discparcoord(Rk, k = k, 
                name = paste(k, "most frequent tuples of ranks of selected variables"))
-}
-
-plot_rank_freq <- function(l) {
-  library(tidyr)
-  library(dplyr)
-  library(ggplot2)
-  d <- pivot_longer(as.data.frame(l$ranks), cols = everything(),
-                    names_to = "Variable", values_to = "Rank_Value") %>%
-    mutate(Rank_Group = factor(Rank_Value, ordered = TRUE, 
-                               levels = seq_len(ncol(l$ranks) + 1),
-                               labels = c(seq_len(ncol(l$ranks)), 'ns'))) %>%
-    count(Variable, Rank_Group) %>% 
-    group_by(Variable) %>% 
-    mutate(Percentage = proportions(n)) %>%
-    mutate(Rank_Value = as.numeric(ifelse(Rank_Group == "ns", ncol(l$ranks) + 1, as.character(Rank_Group)))) %>%
-    mutate(Weight = ncol(l$ranks) + 1 - Rank_Value) %>%
-    mutate(Weighted_Avg = sum(Weight * Percentage, na.rm = TRUE)) %>% 
-    ungroup() %>%
-    arrange(desc(Weighted_Avg))
-  
-  ggplot(d, aes(x = reorder(Variable, Weighted_Avg), y = Percentage)) +
-    geom_hline(yintercept = seq(0.1, 0.9, 0.1), linetype = "dashed", color = "gray75", linewidth = 0.2) +
-    geom_bar(stat = "identity", fill = NA, color = "black", linewidth = 0.2, width = 0.3) +
-    geom_text(aes(label = ifelse(Rank_Group == "ns", paste0(Rank_Group, " (", round(Percentage*100, 1), "%)"), Rank_Group)), 
-                  position = position_stack(vjust = 0.5), size = 0.35 * 8, color = "gray30") +
-    scale_y_continuous(labels = scales::percent_format(),
-                       breaks = seq(0, 1, 0.1)) +
-    coord_flip() +
-    theme_classic() +
-    theme(legend.position = "none") +
-    theme(axis.line.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          axis.line.x = element_line(linewidth = 0.2),
-          axis.title.x = element_text(hjust = 1, vjust = -1),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          plot.caption = element_text(color = "gray50"),
-          panel.background = element_blank(),
-          plot.margin = margin(t = 5.5, r = 12, b = 5.5, l = 5),
-          legend.position = "none") +
-    labs(x = "", y = "Cumulative percentage", fill = "Rank_Group")
 }
 
 #' Plot (individual) selection frequency for each variable
