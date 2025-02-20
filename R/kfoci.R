@@ -4,9 +4,7 @@ if (!requireNamespace("knockofftools", quietly = TRUE))
 if (!requireNamespace("energy", quietly = TRUE)) 
   install.packages("energy")
 
-new_env <- new.env()
-devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/prep_data.R?raw=true", local = new_env)
-rm(new_env)
+devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/prep_data.R?raw=true")
 
 #  Part of the following code was inspired by qeML::qeFOCI by Norm Matloff
 
