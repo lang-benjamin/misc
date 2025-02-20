@@ -1,6 +1,8 @@
 library(KPC)
 if (!requireNamespace("knockofftools", quietly = TRUE)) 
   devtools::install_github("Novartis/knockofftools")
+if (!requireNamespace("energy", quietly = TRUE)) 
+  install.packages("energy")
 
 new_env <- new.env()
 devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/prep_data.R?raw=true", local = new_env)
@@ -60,6 +62,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   idx_y <- if (is.character(y_name)) match(y_name, names(d)) else y_name
   if ((length(idx_y) == 1 && length(unique(Y)) == 2) || bw == 0)
     bw <- base::mean(stats::dist(Y))
+  k <- kernlab::rbfdot(1 / (2 * bw^2))
   
   if (R == 1) {
     # Selection vector that identifies if a variable was selected or not
@@ -68,14 +71,31 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     # (initialize with dummy value ncol(X) + 1 as rank, corresponding to 'not selected')
     Rk <- rep.int(ncol(X) + 1, ncol(X))
     names(S) <- names(Rk) <- colnames(X)
-    selected <- KFOCI(Y = Y, X = X, k = kernlab::rbfdot(1 / (2 * bw^2)), 
-                      Knn = Knn, numCores = numCores)
-    if (length(selected) == 1 && selected == 0L)
+    
+    
+    # Introduce relevance of first selected variable:
+    # Check if there is a (unconditional) dependency to Y
+    # The following code is taken from the current CRAN source and slightly modified
+    p = ncol(X)
+    Q = rep(0, p) 
+    # select the first variable
+    estimateQFixedY <- function(id) {
+      return(KPC::TnKnn(Y, X[, id], k, Knn))
+    }
+    seq_Q = parallel::mclapply(seq(1, p), estimateQFixedY, mc.cores = numCores)
+    seq_Q = unlist(seq_Q)
+    
+    Q[1] = max(seq_Q)
+    index_max = min(which(seq_Q == Q[1]))
+    Q1_pval <- energy::dcorT.test(x = X[, index_max], y = Y)$p.value
+    if (Q[1] <= 0 || Q1_pval > 0.05)
       return(list(selected_indices = integer(0),
                   selected_names = NULL,
                   selections = S,
                   ranks = Rk,
                   new_data = data.frame()))
+    
+    selected <- KFOCI(Y = Y, X = X, k = k, Knn = Knn, numCores = numCores)
     S[selected] <- 1
     for (i in seq_along(selected)) {
       Rk[which(colnames(X) == colnames(X)[selected[i]])] <- i
@@ -95,8 +115,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     colnames(S) <- colnames(Rk) <- paste0("rep_", seq_len(R))
     for (j in 1:R) {
       selected_vars <- KFOCI(Y = Y, X = X, 
-                             k = kernlab::rbfdot(1 / (2 * bw^2)),
-                             Knn = Knn, numCores = numCores)
+                             k = k, Knn = Knn, numCores = numCores)
       if (!(length(selected_vars) == 1 && selected_vars == 0L)) {
         S[selected_vars, j] <- 1
         for (i in seq_along(selected_vars)) {
