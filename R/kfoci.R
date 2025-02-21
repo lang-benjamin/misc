@@ -58,7 +58,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   bw <- stats::median(stats::dist(Y))
   # If median is zero or if Y is binary, then use mean instead of median
   idx_y <- if (is.character(y_name)) match(y_name, names(d)) else y_name
-  if ((length(idx_y) == 1 && length(unique(Y)) == 2) || bw == 0)
+  if (bw == 0 || (length(idx_y) == 1 && length(unique(Y)) == 2))
     bw <- base::mean(stats::dist(Y))
   k <- kernlab::rbfdot(1 / (2 * bw^2))
   
