@@ -1,5 +1,3 @@
-#library(ggplot2)
-
 # Consider using this globally
 #options(
 #  ggplot2.discrete.colour = ggokabeito::palette_okabe_ito(),
