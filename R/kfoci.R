@@ -31,8 +31,8 @@ devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/prep_dat
 #'    The element 'new_data' contains the data set after factor variables have been transformed but without scaling, restricted to the selected variables.
 apply_KFOCI <- function(d, y_name, y_yes_level = NULL, 
                         scale = c("mean_2sd", "mean_sd_all", "none"),
-                        ordered_coding = c("integer", "dummy", "one-hot", "none"),
-                        unordered_coding = c("dummy", "one-hot"),
+                        ordered_coding = c("integer", "one-hot", "dummy", "none"),
+                        unordered_coding = c("one-hot", "dummy"),
                         Knn = max(min(ceiling(nrow(d)/20), 20), 2),
                         numCores = parallel::detectCores(), R = 1) {
   if (!is.data.frame(d))
@@ -62,6 +62,15 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     bw <- base::mean(stats::dist(Y))
   k <- kernlab::rbfdot(1 / (2 * bw^2))
   
+  # Introduce relevance of first selected variable:
+  # Check if there is an unconditional dependency to Y
+  # Following code is taken from the current KPC CRAN source, slightly modified
+  p = ncol(X)
+  Q = rep(0, p) 
+  # select the first variable
+  estimateQFixedY <- function(id) {
+    return(KPC::TnKnn(Y, X[, id], k, Knn))
+  }
   if (R == 1) {
     # Selection vector that identifies if a variable was selected or not
     S <- vector("integer", ncol(X))
@@ -70,19 +79,9 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     Rk <- rep.int(ncol(X) + 1, ncol(X))
     names(S) <- names(Rk) <- colnames(X)
     
-    
-    # Introduce relevance of first selected variable:
-    # Check if there is a (unconditional) dependency to Y
-    # The following code is taken from the current CRAN source and slightly modified
-    p = ncol(X)
-    Q = rep(0, p) 
-    # select the first variable
-    estimateQFixedY <- function(id) {
-      return(KPC::TnKnn(Y, X[, id], k, Knn))
-    }
+    # Check first selected variable
     seq_Q = parallel::mclapply(seq(1, p), estimateQFixedY, mc.cores = numCores)
     seq_Q = unlist(seq_Q)
-    
     Q[1] = max(seq_Q)
     index_max = min(which(seq_Q == Q[1]))
     Q1_pval <- energy::dcorT.test(x = X[, index_max], y = Y)$p.value
@@ -112,6 +111,18 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     rownames(S) <- rownames(Rk) <- colnames(X)
     colnames(S) <- colnames(Rk) <- paste0("rep_", seq_len(R))
     for (j in 1:R) {
+      # Check first selected variable
+      seq_Q = parallel::mclapply(seq(1, p), estimateQFixedY, mc.cores = numCores)
+      seq_Q = unlist(seq_Q)
+      Q[1] = max(seq_Q)
+      index_max = min(which(seq_Q == Q[1]))
+      Q1_pval <- energy::dcorT.test(x = X[, index_max], y = Y)$p.value
+      if (Q[1] <= 0 || Q1_pval > 0.05)
+        return(list(selected_indices = integer(0),
+                    selected_names = NULL,
+                    selected = S,
+                    ranks = Rk,
+                    new_data = data.frame()))
       selected_vars <- KFOCI(Y = Y, X = X, 
                              k = k, Knn = Knn, numCores = numCores)
       if (!(length(selected_vars) == 1 && selected_vars == 0L)) {
