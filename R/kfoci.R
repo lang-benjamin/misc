@@ -64,7 +64,6 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   
   # Introduce relevance of first selected variable:
   # Check if there is an unconditional dependency to Y
-  # Following code is taken from the current KPC CRAN source, slightly modified
   p = ncol(X)
   Q = rep(0, p) 
   # select the first variable
@@ -163,7 +162,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
 #' 
 #' @param l Result from apply_KFOCI
 #' @param k Number of most frequent tuples being plotted
-#' @param plot_freq Only plot variables that have an individual selection frequency of at least min_freq
+#' @param plot_freq Only plot variables that have an individual relative selection frequency of at least min_freq
 #' @param plot_vars Plot variables in plot_vars in any case
 plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
   Rk <- l$ranks
@@ -171,8 +170,8 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
     stop("There is no variation in the tuples of selected variables across the multiple KFOCI calls.")
   library(cdparcoord)
   idx_freq <- which(base::colMeans(l$selected) >= plot_freq)
-  idx_vars <- match(plot_vars, colnames(Rk))
-  plot_idx <- base::intersect(idx_freq, idx_vars)
+  idx_vars <- if (is.null(plot_vars)) match(colnames(Rk), colnames(Rk)) else match(plot_vars, colnames(Rk))
+  plot_idx <- base::union(idx_freq, idx_vars)
   Rk <- as.data.frame(Rk)
   Rk <- Rk[, plot_idx]
   Rk[] <- lapply(Rk, function(x) factor(x, ordered = TRUE, 
@@ -201,12 +200,19 @@ plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
   
   # Define elements for plotting
   idx_freq <- which(base::colMeans(l$selected) >= plot_freq)
-  idx_vars <- match(plot_vars, colnames(l$selected))
-  plot_idx <- base::intersect(idx_freq, idx_vars)
+  idx_vars <- if (is.null(plot_vars)) match(colnames(l$selected), colnames(l$selected)) else match(plot_vars, colnames(l$selected))
+  plot_idx <- base::union(idx_freq, idx_vars)
   d <- s_freq[plot_idx, ]
   colors <- if (nrow(d) == sum(as.integer(d$selected == 1))) "#F28E2B" else c("black", "#F28E2B")
   plot_title <- if (is.null(title)) paste("Frequency of individual selected variables across", nrow(l$selected), "repetitions") else title
-  plot_subtitle <- if (is.null(subtitle)) paste("Variables with selection frequency of at least", round(plot_freq, 2), "are shown") else subtitle
+  if (is.null(subtitle)) {
+    if (is.null(plot_vars))
+      plot_subtitle <- paste("Variables with selection frequency of at least", round(plot_freq, 2), "are shown")
+    else
+      plot_subtitle <- paste("Variables with selection frequency of at least", round(plot_freq, 2), "and", paste(plot_vars, collapse = ", "), "are shown")
+  } else {
+    plot_subtitle <- subtitle
+  }
   plot_caption <- if (is.null(caption)) "Frequencies of variables highlighted in orange are selected according to the algorithm from Sec. 2.3 in Kormarksson et al." else caption
   
   ggplot(data = d, 
