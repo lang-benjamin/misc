@@ -17,8 +17,8 @@ devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/prep_dat
 #'    "mean_2sd" scales all continuous and integer-valued variables that are not binary by subtracting the mean and dividing by 2 times the standard deviation. 
 #'    "mean_sd_all" is the counterpart but will scale all variables, including binary/dummy variables.
 #'    "none" will not scale any variable.
-#' @param ordered_coding How should ordinal factor variables be coded? "integer" converts the ordinal variable into an integer-valued variable (the default), "dummy" does dummy coding,, "one-hot" does one-hot encoding and "none" leaves the factors as they are.
-#' @param unordered_coding How should non-ordinal factor variables be coded? "dummy" does dummy coding, "one-hot" does one-hot encoding.
+#' @param ordered_coding How should ordinal factor variables be coded? "integer" converts the ordinal variable into an integer-valued variable (the default). For a categorical variable with k levels, "dummy" creates k-1 binary variables, "one-hot" creates k binary variables. "none" leaves the factors as they are.
+#' @param unordered_coding How should non-ordinal factor variables be coded? For a categorical variable with k levels, "dummy" creates k-1 binary variables, "one-hot" creates k binary variables
 #' @param Knn Same as in KPC::KFOCI but defined as function of the sample size n. Constant values are allowed.
 #' @param numCores Same as numCores from KPC::KFOCI.
 #' @param R Positive integer. Number of times KFOCI is called repeatedly, see details.
