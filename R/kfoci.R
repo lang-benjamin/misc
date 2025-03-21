@@ -170,7 +170,7 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
     stop("There is no variation in the tuples of selected variables across the multiple KFOCI calls.")
   library(cdparcoord)
   idx_freq <- which(base::colMeans(l$selected) >= plot_freq)
-  idx_vars <- if (is.null(plot_vars)) match(colnames(Rk), colnames(Rk)) else match(plot_vars, colnames(Rk))
+  idx_vars <- if (is.null(plot_vars)) idx_freq else match(plot_vars, colnames(Rk))
   plot_idx <- base::union(idx_freq, idx_vars)
   Rk <- as.data.frame(Rk)
   Rk <- Rk[, plot_idx]
@@ -200,7 +200,7 @@ plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
   
   # Define elements for plotting
   idx_freq <- which(base::colMeans(l$selected) >= plot_freq)
-  idx_vars <- if (is.null(plot_vars)) match(colnames(l$selected), colnames(l$selected)) else match(plot_vars, colnames(l$selected))
+  idx_vars <- if (is.null(plot_vars)) idx_freq else match(plot_vars, colnames(l$selected))
   plot_idx <- base::union(idx_freq, idx_vars)
   d <- s_freq[plot_idx, ]
   colors <- if (nrow(d) == sum(as.integer(d$selected == 1))) "#F28E2B" else c("black", "#F28E2B")
