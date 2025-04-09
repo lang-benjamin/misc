@@ -62,12 +62,15 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
   # y is 1-dimensional response
   if (length(idx_y) == 1 && !is.numeric(y)) {
     if (is.factor(y) && length(unique(y)) == 2) {
-      if (!is.null(y_yes_level))
+      if (!is.null(y_yes_level)) {
         y <- as.integer(y == y_yes_level)
-      else
-        stop("y_yes_level should be given if y_name is factor with 2 levels")
+      } else {
+        y <- as.integer(y) - 1
+        message("y has been converted to integer, where '", levels(y)[1], "' is converted to 0.")
+      }
     } else if (is.factor(y)) {
       y <- as.integer(y) - 1
+      message("y has been converted to integer, where '", levels(y)[1], "' is converted to 0.")
     }
   }
   # y is multivariate response
@@ -77,8 +80,10 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
     # Convert factor component to integer-valued variable
     idx_binary_y <- sapply(y, function(x) is.factor(x) && nlevels(x) == 2)
     if (sum(idx_binary_y) == 1) {
-      if (is.null(y_yes_level))
-        stop("y_yes_level should be given for factor component of y.")
+      if (is.null(y_yes_level)) {
+        message("factor component of y has been converted to integer, where '", levels(y[, idx_binary_y])[1], "' is converted to 0.")
+        y[, idx_binary_y] <- as.integer(y[, idx_binary_y]) - 1
+      }
       y[, idx_binary_y] <- as.integer(y[, idx_binary_y] == y_yes_level) 
     }
     # All other factors will just be converted to integer-valued components
