@@ -176,9 +176,10 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
   Rk <- Rk[, plot_idx]
   Rk[] <- lapply(Rk, function(x) factor(x, ordered = TRUE, 
                                         levels = seq_len(ncol(l$ranks) + 1), 
-                                        labels = c(seq_len(ncol(l$ranks)), 'ns')))
+                                        labels = c(seq_len(ncol(l$ranks)), 'not sel.')))
   discparcoord(Rk, k = k, 
-               name = paste(k, "most frequent tuples of ranks of selected variables")) |>
+               name = paste(k, "most frequent tuples of ranks of selected variables"),
+               differentiate = FALSE) |>
   # make background transparent
   layout(plot_bgcolor  = "rgba(0,0,0,0)",
          paper_bgcolor = "rgba(0,0,0,0)")
