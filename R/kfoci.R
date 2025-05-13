@@ -119,8 +119,8 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
       if (Q[1] <= 0 || Q1_pval > 0.05)
         return(list(selected_indices = integer(0),
                     selected_names = NULL,
-                    selected = S,
-                    ranks = Rk,
+                    selected = t(S),
+                    ranks = t(Rk),
                     new_data = data.frame()))
       selected_vars <- KFOCI(Y = Y, X = X, 
                              k = k, Knn = Knn, numCores = numCores)
