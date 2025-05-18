@@ -64,8 +64,9 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   
   # Introduce relevance of first selected variable:
   # Check if there is an unconditional dependency to Y
-  p = ncol(X)
-  Q = rep(0, p) 
+  # (see KPC::KFOCI)
+  p <- ncol(X)
+  Q <- rep(0, p) 
   # select the first variable
   estimateQFixedY <- function(id) {
     return(KPC::TnKnn(Y, X[, id], k, Knn))
@@ -79,12 +80,12 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     names(S) <- names(Rk) <- colnames(X)
     
     # Check first selected variable
-    seq_Q = parallel::mclapply(seq(1, p), estimateQFixedY, mc.cores = numCores)
-    seq_Q = unlist(seq_Q)
-    Q[1] = max(seq_Q)
-    index_max = min(which(seq_Q == Q[1]))
-    Q1_pval <- energy::dcorT.test(x = X[, index_max], y = Y)$p.value
-    if (Q[1] <= 0 || Q1_pval > 0.05)
+    seq_Q <- parallel::mclapply(seq(1, p), estimateQFixedY, mc.cores = numCores)
+    seq_Q <- unlist(seq_Q)
+    Q[1] <- max(seq_Q)
+    index_max <- min(which(seq_Q == Q[1]))
+    Q1_pval <- energy::indep.test(x = X[, index_max], y = Y, R = 1000)$p.value
+    if (Q[1] <= 0 || Q1_pval > 0.1)
       return(list(selected_indices = integer(0),
                   selected_names = NULL,
                   selected = S,
@@ -111,12 +112,12 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     colnames(S) <- colnames(Rk) <- paste0("rep_", seq_len(R))
     for (j in 1:R) {
       # Check first selected variable
-      seq_Q = parallel::mclapply(seq(1, p), estimateQFixedY, mc.cores = numCores)
-      seq_Q = unlist(seq_Q)
-      Q[1] = max(seq_Q)
-      index_max = min(which(seq_Q == Q[1]))
-      Q1_pval <- energy::dcorT.test(x = X[, index_max], y = Y)$p.value
-      if (Q[1] <= 0 || Q1_pval > 0.05)
+      seq_Q <- parallel::mclapply(seq(1, p), estimateQFixedY, mc.cores = numCores)
+      seq_Q <- unlist(seq_Q)
+      Q[1] <- max(seq_Q)
+      index_max <- min(which(seq_Q == Q[1]))
+      Q1_pval <- energy::indep.test(x = X[, index_max], y = Y, R = 1000)$p.value
+      if (Q[1] <= 0 || Q1_pval > 0.1)
         return(list(selected_indices = integer(0),
                     selected_names = NULL,
                     selected = t(S),
