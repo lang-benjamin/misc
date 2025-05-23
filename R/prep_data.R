@@ -72,12 +72,12 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
       if (!is.null(y_yes_level)) {
         y <- as.integer(y == y_yes_level)
       } else {
-        y <- as.integer(y) - 1
         message("y has been converted to integer, where '", levels(y)[1], "' is converted to 0.")
+        y <- as.integer(y) - 1
       }
     } else if (is.factor(y)) {
-      y <- as.integer(y) - 1
       message("y has been converted to integer, where '", levels(y)[1], "' is converted to 0.")
+      y <- as.integer(y) - 1
     }
   }
   # y is multivariate response
