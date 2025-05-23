@@ -112,7 +112,14 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
     }
   }
   X[] <- lapply(X, f)
-  
+
+  # Omit constant columns
+  idx_const <- constant_columns(X)
+  if (length(idx_const) > 0) {
+    X <- X[, -idx_const]
+    warning(paste0("Constant column ", idx_const, " removed.\n"))
+  }
+                  
   # The remaining unordered factors will be converted to dummy variables
   unordered_coding <- match.arg(unordered_coding)
   if (any(sapply(X, is.factor))) {
@@ -126,13 +133,6 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
     }
     options(na.action = old_option)
   } # X is now a matrix
-  
-  # Omit constant columns
-  idx_const <- constant_columns(X)
-  if (length(idx_const) > 0) {
-    X <- X[, -idx_const]
-    warning(paste0("Constant column ", idx_const, " removed.\n"))
-  }
   
   X_unscaled <- X
   scale <- match.arg(scale)
