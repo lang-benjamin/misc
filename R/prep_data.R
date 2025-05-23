@@ -1,14 +1,21 @@
-#' Identify constant columns of a matrix
+#' Identify constant columns
 #' 
-#' @param m Matrix
+#' @param d Data frame or matrix
 #' 
 #' @return Indices of constant columns
-constant_columns <- function(m) {
-  var_na <- function(x) {
-    if (all(is.na(x)) || length(na.omit(x)) == 1) return(0)
-    var(x, na.rm = TRUE) 
+constant_columns <- function(d) {
+  is_constant <- function(x) {
+    if (is.numeric(x) || is.integer(x)) {
+      if (all(is.na(x)) || length(na.omit(x)) == 1) return(TRUE)
+      return(var(x, na.rm = TRUE) < 1e-05)
+    } else if (is.factor(x) || is.character(x)) {
+      return(length(unique(na.omit(x))) == 1)
+    } else {
+      return(FALSE)
+    }
   }
-  which(apply(m, 2, var_na) < 1e-05)
+  constant_indices <- which(sapply(d, is_constant))
+  return(unname(constant_indices))
 }
 
 # Part of the following code was inspired by qeML::qeFOCI by Norm Matloff
