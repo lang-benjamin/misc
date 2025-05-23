@@ -84,7 +84,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     seq_Q <- unlist(seq_Q)
     Q[1] <- max(seq_Q)
     index_max <- min(which(seq_Q == Q[1]))
-    Q1_pval <- energy::indep.test(x = X[, index_max], y = Y, R = 1000)$p.value
+    Q1_pval <- energy::indep.test(x = X[, index_max], y = Y, R = 500)$p.value
     if (Q[1] <= 0 || Q1_pval > 0.1)
       return(list(selected_indices = integer(0),
                   selected_names = NULL,
@@ -116,7 +116,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
       seq_Q <- unlist(seq_Q)
       Q[1] <- max(seq_Q)
       index_max <- min(which(seq_Q == Q[1]))
-      Q1_pval <- energy::indep.test(x = X[, index_max], y = Y, R = 1000)$p.value
+      Q1_pval <- energy::indep.test(x = X[, index_max], y = Y, R = 500)$p.value
       if (Q[1] <= 0 || Q1_pval > 0.1)
         return(list(selected_indices = integer(0),
                     selected_names = NULL,
