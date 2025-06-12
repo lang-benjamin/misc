@@ -132,7 +132,8 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
                                                            contrasts, contrasts = FALSE))
     }
     options(na.action = old_option)
-  } # X is now a matrix
+  }
+  X <- as.matrix(X)
   
   X_unscaled <- X
   scale <- match.arg(scale)
