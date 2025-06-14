@@ -6,6 +6,27 @@ if (!requireNamespace("energy", quietly = TRUE))
 
 devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/prep_data.R?raw=true")
 
+has_heavy_ties <- function(variable, threshold = 0.5) {
+  # Check if the input is a vector
+  if (!is.vector(variable)) {
+    stop("Input must be a vector.")
+  }
+
+  # Count frequencies of each unique value
+  freq_table <- table(variable)
+
+  # Calculate the proportion of tied observations
+  tied_observations <- sum(freq_table[freq_table > 1])
+  proportion_tied <- tied_observations / length(variable)
+
+  # Check if a single value dominates the dataset
+  max_tie_proportion <- max(freq_table) / length(variable)
+
+  # Return TRUE if either the proportion of tied observations
+  # or the max tie proportion exceeds the threshold
+  return(proportion_tied > threshold || max_tie_proportion > threshold)
+}
+
 #  Part of the following code was inspired by qeML::qeFOCI by Norm Matloff
 
 #' Apply the KFOCI variable selection algorithm
@@ -47,6 +68,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   ordered_coding <- match.arg(ordered_coding)
   unordered_coding <- match.arg(unordered_coding)
   scale <- match.arg(scale)
+  idx_y <- if (is.character(y_name)) match(y_name, names(d)) else y_name
   XY <- prep_data(d = d, y_name = y_name, y_yes_level = y_yes_level, 
                   remove_na = TRUE, ordered_coding = ordered_coding, 
                   unordered_coding = unordered_coding, scale = scale)
@@ -57,8 +79,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
   # Default bandwidth from KPC::KFOCI
   bw <- stats::median(stats::dist(Y))
   # If median is zero or if Y is binary, then use mean instead of median
-  idx_y <- if (is.character(y_name)) match(y_name, names(d)) else y_name
-  if (bw == 0 || (length(idx_y) == 1 && length(unique(Y)) == 2))
+  if (bw == 0 || has_heavy_ties(stats::dist(Y)))
     bw <- base::mean(stats::dist(Y))
   k <- kernlab::rbfdot(1 / (2 * bw^2))
   
