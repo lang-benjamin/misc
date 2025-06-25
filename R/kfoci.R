@@ -7,11 +7,6 @@ if (!requireNamespace("energy", quietly = TRUE))
 devtools::source_url("https://github.com/lang-benjamin/misc/blob/main/R/prep_data.R?raw=true")
 
 has_heavy_ties <- function(variable, threshold = 0.5) {
-  # Check if the input is a vector
-  if (!is.vector(variable)) {
-    stop("Input must be a vector.")
-  }
-
   # Count frequencies of each unique value
   freq_table <- table(variable)
 
@@ -141,8 +136,8 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
       if (Q[1] <= 0 || Q1_pval > 0.1)
         return(list(selected_indices = integer(0),
                     selected_names = NULL,
-                    selected = t(S),
-                    ranks = t(Rk),
+                    selected = S,
+                    ranks = Rk,
                     new_data = data.frame()))
       selected_vars <- KFOCI(Y = Y, X = X, 
                              k = k, Knn = Knn, numCores = numCores)
@@ -174,8 +169,8 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     }
     return(list(selected_indices = selected, 
                 selected_names = selected_names, 
-                selected = t(S), 
-                ranks = t(Rk),
+                selected = S, 
+                ranks = Rk,
                 new_data = new_data))
   }
 }
@@ -187,11 +182,11 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
 #' @param plot_freq Only plot variables that have an individual relative selection frequency of at least min_freq
 #' @param plot_vars Plot variables in plot_vars in any case
 plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
-  Rk <- l$ranks
+  Rk <- t(l$ranks)
   if (all(duplicated(Rk)[-1]))
     stop("There is no variation in the tuples of selected variables across the multiple KFOCI calls.")
   library(cdparcoord)
-  idx_freq <- which(base::colMeans(l$selected) >= plot_freq)
+  idx_freq <- which(base::rowMeans(l$selected) >= plot_freq)
   idx_vars <- if (is.null(plot_vars)) idx_freq else match(plot_vars, colnames(Rk))
   plot_idx <- base::union(idx_freq, idx_vars)
   Rk <- as.data.frame(Rk)
@@ -218,15 +213,15 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
 plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
                                 title = NULL, subtitle = NULL, caption = NULL) {
   library(ggplot2)
-  s_freq <- data.frame(selection_freq = as.numeric(colMeans(l$selected)), 
-                       variable_label = colnames(l$selected),
+  s_freq <- data.frame(selection_freq = as.numeric(rowMeans(l$selected)), 
+                       variable_label = rownames(l$selected),
                        selected = 0)
   s_freq[l$selected_indices, "selected"] <- 1
   s_freq$selected <- as.factor(s_freq$selected)
   
   # Define elements for plotting
-  idx_freq <- which(base::colMeans(l$selected) >= plot_freq)
-  idx_vars <- if (is.null(plot_vars)) idx_freq else match(plot_vars, colnames(l$selected))
+  idx_freq <- which(base::rowMeans(l$selected) >= plot_freq)
+  idx_vars <- if (is.null(plot_vars)) idx_freq else match(plot_vars, rownames(l$selected))
   plot_idx <- base::union(idx_freq, idx_vars)
   d <- s_freq[plot_idx, ]
   colors <- if (nrow(d) == sum(as.integer(d$selected == 1))) "#F28E2B" else c("black", "#F28E2B")
@@ -258,4 +253,37 @@ plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
           legend.position = "none") +
     labs(x = "Frequency", y = "",
          title = plot_title, subtitle = plot_subtitle, caption = plot_caption)
+}
+
+plot_selection_heatmap <- function(l, ...) {
+  if (!requireNamespace("dplyr", quietly = TRUE))
+    stop("dplyr is required.")
+  if (!requireNamespace("ggplot2", quietly = TRUE))
+    stop("ggplot2 is required.")
+  if (!requireNamespace("ggtext", quietly = TRUE))
+    stop("ggtext is required.")
+  object <- list(selected = l$selected, stable.variables = l$selected_names)
+  class(object) <- c("variable.selections", class(object))
+  p <- knockofftools:::plot.variable.selections(object, ...)
+  y_labels <- sapply(
+    unique(rownames(object$selected)),
+    function(x) {
+      color <- if (x %in% object$stable.variables) "red" else "black"
+        paste0("<span style='color:", color, ";'>", x, "</span>")
+    }
+  )
+  p <- p + ggplot2::scale_y_discrete(labels = y_labels)
+  p <- suppressMessages(p + ggplot2::scale_fill_manual(name = "Variable selected",
+                                                       values = c("0"="#132B43","1"="#56B1F7"),
+                                                       labels = c("0" = "No", "1" = "Yes")))
+  p <- p + ggplot2::theme(
+    legend.position = "bottom",
+    axis.title.x = ggplot2::element_text(hjust = 1, margin = ggplot2::margin(t = 6)),
+    axis.title.y = ggplot2::element_text(hjust = 1, vjust = 1, angle = 90,
+                                         margin = ggplot2::margin(t = 0, r = 10, b = 0, l = 0)),
+    axis.text.y = ggtext::element_markdown()
+  )
+  p <- p + labs(x = "Repetition", y = "Variable", 
+                caption = "Stable selection colored in red")
+  p
 }
