@@ -256,6 +256,7 @@ plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
 }
 
 plot_selection_heatmap <- function(l, ...) {
+  library(knockofftools)
   if (!requireNamespace("dplyr", quietly = TRUE))
     stop("dplyr is required.")
   if (!requireNamespace("ggplot2", quietly = TRUE))
@@ -264,7 +265,7 @@ plot_selection_heatmap <- function(l, ...) {
     stop("ggtext is required.")
   object <- list(selected = l$selected, stable.variables = l$selected_names)
   class(object) <- c("variable.selections", class(object))
-  p <- knockofftools:::plot.variable.selections(object, ...)
+  p <- plot(object, ...)
   y_labels <- sapply(
     unique(rownames(object$selected)),
     function(x) {
@@ -283,7 +284,7 @@ plot_selection_heatmap <- function(l, ...) {
                                          margin = ggplot2::margin(t = 0, r = 10, b = 0, l = 0)),
     axis.text.y = ggtext::element_markdown()
   )
-  p <- p + labs(x = "Repetition", y = "Variable", 
-                caption = "Stable selection colored in red")
+  p <- p + ggplot2::labs(x = "Repetition", y = "Variable",
+                         caption = "Stable selection colored in red")
   p
 }
