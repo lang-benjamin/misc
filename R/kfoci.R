@@ -30,8 +30,8 @@ has_heavy_ties <- function(variable, threshold = 0.5) {
 #' @param y_name The variable name in d that represents y; can be of length > 1.
 #' @param y_yes_level If y is a factor with two levels, y_yes_level is the y value that represents 'Yes', to be coded 1 rather than 0
 #' @param scale Scaling option for variables in X. 
-#'    "mean_2sd" scales all continuous and integer-valued variables that are not binary by subtracting the mean and dividing by 2 times the standard deviation. 
 #'    "mean_sd_all" is the counterpart but will scale all variables, including binary/dummy variables.
+#'    "mean_2sd" scales all continuous and integer-valued variables that are not binary by subtracting the mean and dividing by 2 times the standard deviation. 
 #'    "none" will not scale any variable.
 #' @param ordered_coding How should ordinal factor variables be coded? "integer" converts the ordinal variable into an integer-valued variable (the default). For a categorical variable with k levels, "dummy" creates k-1 binary variables, "one-hot" creates k binary variables. "none" leaves the factors as they are.
 #' @param unordered_coding How should non-ordinal factor variables be coded? For a categorical variable with k levels, "dummy" creates k-1 binary variables, "one-hot" creates k binary variables
@@ -46,7 +46,7 @@ has_heavy_ties <- function(variable, threshold = 0.5) {
 #'    The list element 'selected' contains a matrix indicating whether each of the variables was selected (1) or not (0) in each of the R repetitions, and 'ranks' contains the rank of each variable as obtained by KFOCI for each of the R runs.
 #'    The element 'new_data' contains the data set after factor variables have been transformed but without scaling, restricted to the selected variables.
 apply_KFOCI <- function(d, y_name, y_yes_level = NULL, 
-                        scale = c("mean_2sd", "mean_sd_all", "none"),
+                        scale = c("mean_sd_all", "mean_2sd", "none"),
                         ordered_coding = c("integer", "one-hot", "dummy", "none"),
                         unordered_coding = c("one-hot", "dummy"),
                         Knn = max(min(ceiling(nrow(d)/20), 20), 2),
