@@ -37,8 +37,7 @@ constant_columns <- function(d) {
 prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
                       ordered_coding = c("dummy", "one-hot", "integer", "none"),
                       unordered_coding = c("dummy", "one-hot"),
-                      scale = c("none", "mean_2sd", "mean_sd_all", 
-                                "median_2GMD", "median_GMD_all")) {
+                      scale = c("none", "mean_2sd", "mean_sd_all")) {
   # Argument checks
   if (!is.data.frame(d))
     stop("d should be a data frame.")
@@ -150,18 +149,6 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
   } 
   if (scale == "mean_sd_all") {
     X <- base::scale(X, center = TRUE, scale = TRUE)
-  } 
-  if (scale == "median_2GMD") {
-    # For all except binary: subtract mean, divide by 2 * Gini's Mean Difference
-    stopifnot(requireNamespace("Hmisc", quietly = TRUE))
-    X[, idx_not_binary] <- base::scale(X[, idx_not_binary, drop = FALSE], 
-                                       center = apply(X[, idx_not_binary, drop = FALSE], 2, median, na.rm = TRUE),
-                                       scale =  apply(X[, idx_not_binary, drop = FALSE], 2, function(z) 2 * Hmisc::GiniMd(z, na.rm = TRUE)))
-  }
-  if (scale == "median_GMD_all") {
-    stopifnot(requireNamespace("Hmisc", quietly = TRUE))
-    X <- base::scale(X, center = apply(X, 2, median, na.rm = TRUE), 
-                     scale = apply(X, 2, function(z) Hmisc::GiniMd(z, na.rm = TRUE)))
   }
   
   list(X = X, X_unscaled = X_unscaled, Y = y)
