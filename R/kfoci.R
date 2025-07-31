@@ -134,11 +134,7 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
       index_max <- min(which(seq_Q == Q[1]))
       Q1_pval <- energy::indep.test(x = X[, index_max], y = Y, R = 500)$p.value
       if (Q[1] <= 0 || Q1_pval > 0.1)
-        return(list(selected_indices = integer(0),
-                    selected_names = NULL,
-                    selected = S,
-                    ranks = Rk,
-                    new_data = data.frame()))
+        break
       selected_vars <- KFOCI(Y = Y, X = X, 
                              k = k, Knn = Knn, numCores = numCores)
       if (!(length(selected_vars) == 1 && selected_vars == 0L)) {
