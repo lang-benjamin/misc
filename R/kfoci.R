@@ -109,14 +109,17 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
                   new_data = data.frame()))
     
     selected <- KFOCI(Y = Y, X = X, k = k, Knn = Knn, numCores = numCores)
-    S[selected] <- 1
-    for (i in seq_along(selected)) {
-      Rk[which(colnames(X) == colnames(X)[selected[i]])] <- i
+    if (!(length(selected) == 1 && selected == 0L)) {
+      S[selected] <- 1
+      for (i in seq_along(selected)) {
+        Rk[which(colnames(X) == colnames(X)[selected[i]])] <- i
+      }
+      new_data <- as.data.frame(cbind(X_unscaled[, selected, drop = FALSE], Y))
+      colnames(new_data)[seq_len(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
+      colnames(new_data)[seq(from = ncol(new_data) - length(idx_y) + 1, to = ncol(new_data))] <- colnames(d)[idx_y]
+    } else {
+      new_data <- data.frame()
     }
-    new_data <- as.data.frame(cbind(X_unscaled[, selected, drop = FALSE], Y))
-    if (length(selected) > 0)
-      colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
-    colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
     return(list(selected_indices = selected, 
                 selected_names = colnames(X)[selected],
                 selected = S,
