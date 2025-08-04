@@ -113,8 +113,9 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     for (i in seq_along(selected)) {
       Rk[which(colnames(X) == colnames(X)[selected[i]])] <- i
     }
-    new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
-    colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
+    new_data <- as.data.frame(cbind(X_unscaled[, selected, drop = FALSE], Y))
+    if (length(selected) > 0)
+      colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
     colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
     return(list(selected_indices = selected, 
                 selected_names = colnames(X)[selected],
@@ -159,8 +160,9 @@ apply_KFOCI <- function(d, y_name, y_yes_level = NULL,
     if (length(selected) == 0 && typeof(selected) == "integer") {
       new_data <- data.frame()
     } else {
-      new_data <- as.data.frame(cbind(X_unscaled[, selected], Y))
-      colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
+      new_data <- as.data.frame(cbind(X_unscaled[, selected, drop = FALSE], Y))
+      if (length(selected) > 0)
+        colnames(new_data)[1:(ncol(new_data) - length(idx_y))] <- colnames(X_unscaled)[selected]
       colnames(new_data)[(ncol(new_data) - length(idx_y) + 1):ncol(new_data)] <- colnames(d)[idx_y]
     }
     return(list(selected_indices = selected, 
