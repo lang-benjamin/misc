@@ -49,10 +49,10 @@ constant_columns <- function(d, tol = 0) {
 }
 
 #  Part of the following code was inspired by qeML::qeFOCI by Norm Matloff
-#' Simple pre-processing of a data frame into X and Y #'
+#' Pre-processing of a data frame into X and Y #'
 #' @description Converts mixed-type predictors to a numeric design matrix with
 #'   optional scaling, handles binary/ordinal/unordered factors, drops constant
-#'   columns, and encodes the response. Multivariate responses are supported.
+#'   columns, and encodes the response. Multivariate responses are partially supported.
 #'
 #' @param d A data frame containing predictors and response; response can be multivariate.
 #' @param y_name Character vector with the response variable name(s) in `d` (or
@@ -77,6 +77,9 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
                       ordered_coding = c("dummy", "one-hot", "integer", "none"),
                       unordered_coding = c("dummy", "one-hot"),
                       scale = c("none", "mean_2sd", "mean_sd_all")) {
+  # Local helper
+  is_binary_factor <- function(x) is.factor(x) && nlevels(x) == 2
+  
   # ---- Argument checks ----
   if (!is.data.frame(d)) stop("d should be a data frame.")
   if (is.character(y_name) && !all(y_name %in% names(d)))
@@ -88,7 +91,6 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
   idx_y <- if (is.character(y_name)) match(y_name, names(d)) else y_name
   
   # ---- Coerce some types early ----
-  # characters -> factors; logical -> integer
   d[] <- lapply(d, function(x) {
     if (is.character(x)) return(as.factor(x))
     if (is.logical(x)) return(as.integer(x))
@@ -96,8 +98,8 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
   })
   
   # Split X and Y
-  y <- d[, idx_y, drop = TRUE]
-  X <- d[, -idx_y, drop = FALSE]
+  y <- d[, idx_y, drop = (length(idx_y) == 1)]
+  X <- d[, setdiff(seq_len(ncol(d)), idx_y), drop = FALSE]
   
   # Optional NA removal across X and Y
   if (isTRUE(remove_na)) {
@@ -106,114 +108,146 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
     y <- if (length(idx_y) > 1) y[ok, , drop = FALSE] else y[ok]
   }
   
-  # ---- Handle Y encoding ----
-  if (length(idx_y) == 1) {
-    # 1D response
-    if (!is.numeric(y)) {
-      if (is.factor(y) && nlevels(y) == 2) {
+  # ---- Handle Y encoding with explicit messages ----
+  if (length(idx_y) == 1L) {
+    if (is.factor(y)) {
+      if (nlevels(y) == 2L) {
+        levs <- levels(y)
         if (!is.null(y_yes_level)) {
-          if (!y_yes_level %in% levels(y))
+          if (!y_yes_level %in% levs)
             stop("y_yes_level not found in factor levels of y.")
+          message(sprintf(
+            "Y: binary factor converted to {0,1} using y_yes_level='%s' as 1 (other level -> 0).",
+            y_yes_level
+          ))
           y <- as.integer(y == y_yes_level)
         } else {
-          message("y converted to {0,1} with '", levels(y)[1], "' -> 0.")
-          y <- as.integer(y) - 1
+          message(sprintf(
+            "Y: binary factor converted to {0,1}: '%s' -> 0, '%s' -> 1.",
+            levs[1], levs[2]
+          ))
+          y <- as.integer(y) - 1L
         }
-      } else if (is.factor(y)) {
-        message("y factor converted to integers starting at 0.")
-        y <- as.integer(y) - 1
+      } else {
+        # leave >2-level factor as is
       }
+    } else {
+      # numeric -> leave as is
     }
   } else {
-    # Multivariate response
-    if (is.data.frame(y)) {
-      # Special case: exactly one binary factor component
-      idx_binary_y <- vapply(y, function(x) is.factor(x) && nlevels(x) == 2, logical(1))
-      if (sum(idx_binary_y) == 1) {
+    if (is.matrix(y)) y <- as.data.frame(y)
+    
+    if (ncol(y) == 2L) {
+      col_is_num  <- vapply(y, is.numeric, logical(1))
+      col_is_binF <- vapply(y, is_binary_factor, logical(1))
+      
+      if (all(col_is_binF)) {
+        # both 2-level factors -> convert both, ignore y_yes_level
+        for (j in which(col_is_binF)) {
+          levs <- levels(y[[j]])
+          message(sprintf(
+            "Y[%s]: binary factor converted to {0,1}: '%s' -> 0, '%s' -> 1.",
+            names(y)[j], levs[1], levs[2]
+          ))
+          y[[j]] <- as.integer(y[[j]]) - 1L
+        }
+      } else if (sum(col_is_binF) == 1L && sum(col_is_num) == 1L) {
+        j_fac <- which(col_is_binF)
+        levs <- levels(y[[j_fac]])
         if (is.null(y_yes_level)) {
-          message("Binary factor component in y converted to {0,1} with first level -> 0.")
-          y[, idx_binary_y] <- as.integer(y[, idx_binary_y, drop = TRUE]) - 1
+          message(sprintf(
+            "Y[%s]: binary factor converted to {0,1}: '%s' -> 0, '%s' -> 1.",
+            names(y)[j_fac], levs[1], levs[2]
+          ))
+          y[[j_fac]] <- as.integer(y[[j_fac]]) - 1L
         } else {
-          levs <- levels(y[, idx_binary_y, drop = TRUE])
           if (!y_yes_level %in% levs)
-            stop("y_yes_level not found in the binary factor component of y.")
-          y[, idx_binary_y] <- as.integer(y[, idx_binary_y, drop = TRUE] == y_yes_level)
+            stop("y_yes_level not found in the binary factor column of Y.")
+          message(sprintf(
+            "Y[%s]: binary factor converted to {0,1} using y_yes_level='%s' as 1 (other level -> 0).",
+            names(y)[j_fac], y_yes_level
+          ))
+          y[[j_fac]] <- as.integer(y[[j_fac]] == y_yes_level)
+        }
+      } else {
+        if (!all(col_is_num)) {
+          stop("For 2D Y, cases other than (i) both binary factors or (ii) one numeric + one binary factor must be fully numeric.")
         }
       }
-      # Convert remaining factors to integers starting at 0
-      y[] <- lapply(y, function(x) if (is.factor(x)) as.integer(x) - 1 else x)
+    } else {
+      # >=3 columns -> must be fully numeric
+      if (!all(vapply(y, is.numeric, logical(1)))) {
+        stop("For Y with >= 3 columns, all columns must be numeric.")
+      }
     }
   }
   
   # ---- Handle X encoding ----
-  ordered_coding <- match.arg(ordered_coding)
+  ordered_coding   <- match.arg(ordered_coding)
   unordered_coding <- match.arg(unordered_coding)
   
-  # Process ordered factors according to option
   X[] <- lapply(X, function(z) {
     if (is.ordered(z)) {
       switch(
         ordered_coding,
         "dummy"   = factor(z, ordered = FALSE),
         "one-hot" = factor(z, ordered = FALSE),
-        "integer" = as.integer(z) - 1,
+        "integer" = as.integer(z) - 1L,
         "none"    = z
       )
-    } else {
-      z
-    }
+    } else z
   })
   
   # Drop constant columns
   idx_const <- constant_columns(X)
   if (length(idx_const) > 0) {
     X <- X[, setdiff(seq_len(ncol(X)), idx_const), drop = FALSE]
-    warning(sprintf(
-      "Constant column(s) removed: %s",
-      paste(idx_const, collapse = ", ")
-    ))
+    warning(sprintf("Constant column(s) removed: %s", paste(idx_const, collapse = ", ")))
   }
   
   # Expand unordered factors with model.matrix
-  if (any(vapply(X, is.factor, logical(1)))) {
+  if (ncol(X) && any(vapply(X, is.factor, logical(1)))) {
     old_na <- getOption("na.action")
     on.exit(options(na.action = old_na), add = TRUE)
-    options(na.action = "na.pass")
+    options(na.action = "na.pass")  # keep rows with NA
     
     if (unordered_coding == "dummy") {
-      # treatment contrasts -> k-1 dummies, no intercept
-      X <- stats::model.matrix(~ . , X)
-      # Drop intercept if present
-      if (colnames(X)[1] == "(Intercept)") X <- X[, -1, drop = FALSE]
+      mm <- stats::model.matrix(~ ., data = X)
+      if (ncol(mm) && colnames(mm)[1] == "(Intercept)") {
+        X <- mm[, -1, drop = FALSE]
+      } else {
+        X <- mm
+      }
     } else {
-      # one-hot: k dummies
+      # one-hot: k dummies per factor, no intercept
       fac_idx <- vapply(X, is.factor, logical(1))
-      contr <- lapply(X[, fac_idx, drop = FALSE], stats::contrasts, contrasts = FALSE)
-      X <- stats::model.matrix(~ 0 + . , X, contrasts.arg = contr)
+      contr_list <- lapply(X[, fac_idx, drop = FALSE], function(x) {
+        stats::contr.treatment(n = nlevels(x), base = 0, contrasts = FALSE)
+      })
+      names(contr_list) <- names(X)[fac_idx]
+      X <- stats::model.matrix(~ 0 + ., data = X, contrasts.arg = contr_list)
     }
   }
   
-  # Ensure a numeric matrix result
+  # Ensure numeric matrix
   X <- as.matrix(X)
   storage.mode(X) <- "double"
   X_unscaled <- X
   
   # ---- Optional scaling ----
   scale <- match.arg(scale)
-  if (scale == "none") return(list(X = X_unscaled, X_unscaled = X_unscaled, Y = y))
+  if (scale == "none" || !ncol(X)) return(list(X = X_unscaled, X_unscaled = X_unscaled, Y = y))
   
-  # Identify non-binary columns robustly (ignore NAs)
   is_non_binary <- function(z) {
     u <- unique(z)
     if (anyNA(u)) u <- u[!is.na(u)]
-    length(u) != 2
+    length(u) != 2L
   }
   idx_not_binary <- vapply(seq_len(ncol(X)), function(j) is_non_binary(X[, j]), logical(1))
   
   if (scale == "mean_2sd") {
     if (any(idx_not_binary)) {
       sds <- apply(X[, idx_not_binary, drop = FALSE], 2, stats::sd, na.rm = TRUE)
-      # guard against zero SD
       sds[!is.finite(sds) | sds == 0] <- 1
       X[, idx_not_binary] <- scale(
         X[, idx_not_binary, drop = FALSE],
