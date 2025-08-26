@@ -130,6 +130,7 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
         }
       } else {
         # leave >2-level factor as is
+        message("Note: Y is a factor with > 2 levels and will be left as-is.")
       }
     } else {
       # numeric -> leave as is
