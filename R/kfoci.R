@@ -88,10 +88,22 @@ apply_KFOCI <- function(X, Y, Z = NULL,
   colnames(X) <- paste0(x_ids, colnames(X))
   
   # Build data frame for pre-processing
-  if (is.vector(Y)) Y <- as.matrix(Y)
-  if (is.null(colnames(Y))) colnames(Y) <- if (ncol(Y) == 1) "Y" else paste0("Y", seq_len(ncol(Y)))
-  d_for_prep <- cbind(X, as.data.frame(Y))
-  y_names <- colnames(Y)
+  if (is.matrix(Y)) {
+    Y_df <- as.data.frame(Y)
+  } else if (is.data.frame(Y)) {
+    Y_df <- Y
+  } else if (is.atomic(Y) || is.factor(Y)) {
+    # vector-like, including factor/logical/numeric/character
+    Y_df <- data.frame(Y = Y)
+  } else {
+    stop("Unsupported type for Y. Provide a vector, factor, matrix, or data.frame.")
+  }
+  if (nrow(Y_df) != nrow(X)) stop("Y and X must have the same number of rows.")
+  if (is.null(colnames(Y_df))) {
+    colnames(Y_df) <- if (ncol(Y_df) == 1L) "Y" else paste0("Y", seq_len(ncol(Y_df)))
+  }
+  y_names <- colnames(Y_df)
+  d_for_prep <- cbind(X, Y_df)
   
   XY <- prep_data(
     d = d_for_prep,
