@@ -223,7 +223,7 @@ prep_data <- function(d, y_name, y_yes_level = NULL, remove_na = FALSE,
       # one-hot: k dummies per factor, no intercept
       fac_idx <- vapply(X, is.factor, logical(1))
       contr_list <- lapply(X[, fac_idx, drop = FALSE], function(x) {
-        stats::contr.treatment(n = nlevels(x), base = 0, contrasts = FALSE)
+        stats::contr.treatment(n = levels(x), base = 0, contrasts = FALSE)
       })
       names(contr_list) <- names(X)[fac_idx]
       X <- stats::model.matrix(~ 0 + ., data = X, contrasts.arg = contr_list)
