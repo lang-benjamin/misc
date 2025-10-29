@@ -249,7 +249,7 @@ plot_rank_tuples <- function(l, k = 5, plot_freq = 0, plot_vars = NULL) {
   Rk <- as.data.frame(Rk)
   Rk <- Rk[, plot_idx, drop = FALSE]
   Rk[] <- lapply(Rk, function(x) factor(x, ordered = TRUE,
-                                        levels = seq_len(ncol(Rk) + 1),
+                                        levels = c(seq_len(ncol(Rk)), max(l$ranks)),
                                         labels = c(seq_len(ncol(Rk)), 'not sel.')))
   cdparcoord::discparcoord(Rk, k = k,
                            name = paste(k, "most frequent tuples of ranks of selected variables"),
@@ -345,8 +345,9 @@ plot_selection_heatmap <- function(l, ...) {
       axis.title.x = ggplot2::element_text(hjust = 1, margin = ggplot2::margin(t = 6)),
       axis.title.y = ggplot2::element_text(hjust = 1, vjust = 1, angle = 90,
                                            margin = ggplot2::margin(r = 10)),
-      axis.text.y  = ggtext::element_markdown()
+      axis.text.y  = ggtext::element_markdown(),
+      axis.text.x = element_blank()
     )
   p + ggplot2::labs(x = "Repetition", y = "Variable",
-                    caption = "Stable selection colored in red")
+                    caption = "Stable selection colored in red.")
 }
