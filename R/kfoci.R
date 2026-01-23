@@ -308,7 +308,7 @@ plot_selection_freq <- function(l, plot_freq = 0, plot_vars = NULL,
     ) +
     ggplot2::labs(x = "Frequency", y = "", title = plot_title, subtitle = plot_subtitle, caption = plot_caption) }
 
-#' Selection heatmap across repetitions (highlights stable selection) #'
+#' Selection heatmap across repetitions (highlights stable selection); this is a wrapper around knockofftools::plot.variable.selections #'
 #' @param l Result from `apply_KFOCI()`.
 #' @param ... Passed to `knockofftools::plot.variable.selections`.
 #' @export
