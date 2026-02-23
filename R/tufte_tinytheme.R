@@ -4,5 +4,5 @@ tinyplot::tinytheme(
   adj.xlab = 1,        # x-title right
   palette.qualitative = "Okabe-Ito",
   las = 1,             # y tick labels horizontal
-  cex = 1.2            # bump all fonts
+  cex.axis = 1.2       # increase axis labels
 )
